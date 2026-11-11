@@ -44,3 +44,10 @@ export async function signRewardVoucher(player: string, earnedMilli: number) {
 
   return { cumulativeAmount: cumulativeAmount.toString(), deadline: deadline.toString(), signature };
 }
+
+/** G$ (in thousandths) a daily Jelly Merge run pays for a given score. */
+export function mergeRewardMilli(score: number) {
+  const per1000 = envNumber('GOODTAP_MERGE_REWARD_PER_1000', 0.1);
+  const cap = envNumber('GOODTAP_MAX_REWARD_PER_ROUND', 1);
+  return Math.round(Math.min(Math.floor(score / 1000) * per1000, cap) * 1000);
+}

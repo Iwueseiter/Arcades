@@ -8,7 +8,7 @@ const NONCE_COOKIE = 'gt_nonce';
 const SESSION_MAX_AGE = 60 * 60 * 24 * 180;
 const NONCE_MAX_AGE = 60 * 10;
 
-function getSecret() {
+export function getSecret() {
   const secret = process.env.GOODTAP_SESSION_SECRET;
   if (secret && secret.length >= 32) return secret;
   if (process.env.NODE_ENV === 'production') {

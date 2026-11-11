@@ -48,6 +48,53 @@ export function mulberry32(seed: number) {
   };
 }
 
+export type WorldId = 'candy' | 'bubble' | 'jelly' | 'galaxy';
+
+type StandardSkin = (typeof STANDARD_SKINS)[number];
+
+/** Each level takes the player to the next world: a new look and a different mix of treats. */
+export const WORLDS: { id: WorldId; name: string; goldenChance: number; weights: Record<StandardSkin, number> }[] = [
+  { id: 'candy', name: 'Candy Sky', goldenChance: 0.12, weights: { coin: 3, 'jelly-drop': 2, 'jelly-cube': 2, bubble: 2, candy: 3 } },
+  { id: 'bubble', name: 'Bubble Lagoon', goldenChance: 0.13, weights: { coin: 2, 'jelly-drop': 1, 'jelly-cube': 1, bubble: 6, candy: 1 } },
+  { id: 'jelly', name: 'Jelly Jungle', goldenChance: 0.14, weights: { coin: 2, 'jelly-drop': 4, 'jelly-cube': 4, bubble: 1, candy: 1 } },
+  { id: 'galaxy', name: 'Golden Galaxy', goldenChance: 0.22, weights: { coin: 5, 'jelly-drop': 1, 'jelly-cube': 1, bubble: 2, candy: 2 } },
+];
+
+const LEVEL_THRESHOLDS = [0, 150, 350, 600, 900, 1300, 1800, 2400, 3100, 4000];
+
+/** Level reached at a score (1-based). After the table runs out, every 1000 points is another level. */
+export function levelForScore(score: number) {
+  let level = 1;
+  for (let i = 1; i < LEVEL_THRESHOLDS.length; i++) if (score >= LEVEL_THRESHOLDS[i]) level = i + 1;
+  const last = LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+  if (score >= last + 1000) level += Math.floor((score - last) / 1000);
+  return level;
+}
+
+/** Points needed to reach the next level. */
+export function nextLevelAt(level: number) {
+  if (level < LEVEL_THRESHOLDS.length) return LEVEL_THRESHOLDS[level];
+  return LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1] + (level - LEVEL_THRESHOLDS.length + 1) * 1000;
+}
+
+export function levelStartsAt(level: number) {
+  return level === 1 ? 0 : nextLevelAt(level - 1);
+}
+
+export function worldForLevel(level: number) {
+  return WORLDS[(level - 1) % WORLDS.length];
+}
+
+function pickSkin(roll: number, weights: Record<StandardSkin, number>): StandardSkin {
+  const total = STANDARD_SKINS.reduce((sum, skin) => sum + weights[skin], 0);
+  let acc = 0;
+  for (const skin of STANDARD_SKINS) {
+    acc += weights[skin] / total;
+    if (roll < acc) return skin;
+  }
+  return 'coin';
+}
+
 export function getDifficulty(score: number) {
   const level = Math.min(Math.floor(score / 180), 12);
   return {
@@ -56,7 +103,7 @@ export function getDifficulty(score: number) {
     spawnIntervalMs: Math.max(MIN_SPAWN_INTERVAL_MS, 950 - level * 45),
     bombChance: Math.min(0.3, 0.08 + level * 0.018),
     rocketChance: 0.07,
-    goldenChance: 0.14,
+    goldenChance: worldForLevel(levelForScore(score)).goldenChance,
   };
 }
 
@@ -99,7 +146,7 @@ export function createToken(seed: number, spawnIndex: number, score: number, slo
   const x = radius + column * (ARENA_WIDTH - radius * 2);
   const speed = clamp(85 + rng() * 50, 85, 135) * difficulty.speedMultiplier;
 
-  const skin: Skin = type === 'standard' ? STANDARD_SKINS[Math.floor(rng() * STANDARD_SKINS.length)] : type;
+  const skin: Skin = type === 'standard' ? pickSkin(rng(), worldForLevel(levelForScore(score)).weights) : type;
 
   return {
     id: `t${spawnIndex}`,

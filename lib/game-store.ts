@@ -1,33 +1,44 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { api } from '@/lib/api';
-import { playSound } from '@/lib/audioManager';
+import { playSound, setMusicIntensity, startMusic, stopMusic, type SoundEventName } from '@/lib/audioManager';
 import {
   ARENA_HEIGHT,
   ARENA_WIDTH,
   MILESTONES,
   ROCKET_SLOWMO_MS,
   STARTING_LIVES,
-  type TapLogEntry,
   type Skin,
+  type TapLogEntry,
   type Token,
   type TokenType,
   clamp,
   createSpawn,
   getDifficulty,
   getStreakMultiplier,
+  levelForScore,
   pointsFor,
   swayX,
+  worldForLevel,
 } from '@/lib/game-rules';
 import { usePlayerStore } from '@/lib/player-store';
+import { useProgressStore, type Mission } from '@/lib/progress-store';
 import { vibrate } from '@/lib/settings-store';
 import type { RoundFinishResponse } from '@/lib/types';
 
-export type RoundStatus = 'idle' | 'starting' | 'countdown' | 'playing' | 'submitting' | 'ended';
+export type RoundStatus = 'idle' | 'starting' | 'countdown' | 'playing' | 'paused' | 'submitting' | 'ended';
 
 export type Pop = { id: number; x: number; y: number; label: string; kind: TokenType | 'miss'; skin?: Skin; size?: number };
 
-type RoundResult = RoundFinishResponse & { rejected?: string; offline?: boolean };
+export type MascotMood = 'idle' | 'happy' | 'excited' | 'sad' | 'wow';
+
+type RoundResult = RoundFinishResponse & {
+  rejected?: string;
+  offline?: boolean;
+  xpGained?: number;
+  completed?: Mission[];
+  level?: number;
+};
 
 type GameState = {
   status: RoundStatus;
@@ -36,11 +47,16 @@ type GameState = {
   seed: number;
   countdown: number;
   startedAt: number;
+  pausedAt: number;
+  arenaHeight: number;
   score: number;
+  level: number;
   lives: number;
   streak: number;
   bestStreak: number;
+  maxMultiplier: number;
   multiplier: number;
+  collected: Partial<Record<Skin, number>>;
   tokens: Token[];
   spawnIndex: number;
   spawnAccumulator: number;
@@ -48,7 +64,8 @@ type GameState = {
   log: TapLogEntry[];
   pops: Pop[];
   shake: number;
-  banner: string | null;
+  banner: { title: string; subtitle?: string } | null;
+  mascot: { mood: MascotMood; line: string | null; at: number };
   result: RoundResult | null;
   localBest: number;
 };
@@ -57,17 +74,24 @@ type GameActions = {
   startRound: () => Promise<void>;
   tick: (deltaMs: number, now: number) => void;
   tapToken: (tokenId: string) => void;
-  reset: () => void;
+  pause: () => void;
+  resume: () => void;
+  quit: () => void;
+  exit: () => void;
+  setArenaHeight: (height: number) => void;
 };
 
 const POP_LIFETIME_MS = 750;
 
 const roundDefaults = {
   score: 0,
+  level: 1,
   lives: STARTING_LIVES,
   streak: 0,
   bestStreak: 0,
+  maxMultiplier: 1,
   multiplier: 1,
+  collected: {},
   tokens: [] as Token[],
   spawnIndex: 0,
   spawnAccumulator: 0,
@@ -82,25 +106,71 @@ const roundDefaults = {
 const milestoneLabel = (threshold: number) =>
   threshold === 100 ? 'Nice!' : threshold === 250 ? 'Great!' : threshold === 500 ? 'Amazing!' : threshold === 1000 ? 'Unreal!' : 'Legendary!';
 
+const POP_SOUND: Partial<Record<Skin, SoundEventName>> = {
+  coin: 'pop-coin',
+  'jelly-drop': 'pop-jelly',
+  'jelly-cube': 'pop-jelly',
+  bubble: 'pop-bubble',
+  candy: 'pop-candy',
+};
+
+const HAPPY_LINES = ['Yum!', 'Tasty!', 'So good!', 'Keep going!', 'Wheee!', 'Pop pop!'];
+const SAD_LINES = ['Oops!', 'Aww…', 'Missed one!', 'Uh-oh!'];
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export const useGameStore = create<GameState & GameActions>()(
   persist(
     (set, get) => {
+      const cheer = (mood: MascotMood, line: string | null) => set({ mascot: { mood, line, at: performance.now() } });
+
+      const showBanner = (banner: GameState['banner'], ms = 1300) => {
+        set({ banner });
+        setTimeout(() => get().banner === banner && set({ banner: null }), ms);
+      };
+
       const finishRound = async () => {
-        const { roundId, log, score } = get();
+        const state = get();
+        const { roundId, log, score } = state;
         set({ status: 'submitting', tokens: [] });
+        stopMusic();
         playSound('round-over', 1);
         vibrate([40, 60, 40]);
+
+        const progress = useProgressStore.getState().recordRound({
+          score,
+          level: state.level,
+          maxMultiplier: state.maxMultiplier,
+          bestStreak: state.bestStreak,
+          collected: state.collected,
+        });
+
         if (!roundId) return;
         try {
           const result = await api.finishRound(roundId, log);
           usePlayerStore.getState().setPlayer(result.player);
-          set({ status: 'ended', result, localBest: Math.max(get().localBest, result.score) });
-          if (result.newBest) playSound('new-best', 1);
+          set({ status: 'ended', result: { ...result, ...progress, level: state.level }, localBest: Math.max(get().localBest, result.score) });
+          if (result.newBest) {
+            playSound('new-best', 1);
+            cheer('excited', 'New best! You rock!');
+          } else {
+            cheer(score > 0 ? 'happy' : 'sad', score > 0 ? 'Nice run!' : 'Let’s try again!');
+          }
         } catch {
           set({
             status: 'ended',
-            result: { score, ranked: false, reward: 0, newBest: false, offline: true, player: usePlayerStore.getState().player! },
+            result: {
+              score,
+              ranked: false,
+              reward: 0,
+              newBest: false,
+              offline: true,
+              player: usePlayerStore.getState().player!,
+              ...progress,
+              level: state.level,
+            },
           });
+          cheer('sad', 'We lost connection…');
         }
       };
 
@@ -112,32 +182,44 @@ export const useGameStore = create<GameState & GameActions>()(
         seed: 0,
         countdown: 0,
         startedAt: 0,
+        pausedAt: 0,
+        arenaHeight: ARENA_HEIGHT,
+        mascot: { mood: 'idle', line: null, at: 0 },
         localBest: 0,
+
+        setArenaHeight: (height) => set({ arenaHeight: clamp(height, 300, 900) }),
 
         startRound: async () => {
           const status = get().status;
-          if (status === 'starting' || status === 'countdown' || status === 'playing' || status === 'submitting') return;
-          set({ status: 'starting' });
+          if (status === 'starting' || status === 'countdown' || status === 'playing' || status === 'paused' || status === 'submitting') return;
+          set({ status: 'starting', result: null });
           playSound('button-click', 1);
 
           try {
             const round = await api.startRound();
             usePlayerStore.getState().setPlayer(round.player);
-            set({ ...roundDefaults, roundId: round.roundId, seed: round.seed, ranked: round.ranked, status: 'countdown', countdown: 3 });
+            set({ ...roundDefaults, collected: {}, roundId: round.roundId, seed: round.seed, ranked: round.ranked, status: 'countdown', countdown: 3 });
           } catch {
             set({ status: 'idle' });
             throw new Error('Could not start a round. Check your connection and try again.');
           }
 
+          cheer('excited', 'Get ready!');
+          playSound('countdown', 1);
           for (const n of [2, 1]) {
-            await new Promise((resolve) => setTimeout(resolve, 650));
+            await sleep(700);
+            if (get().status !== 'countdown') return;
             set({ countdown: n });
-            playSound('equip-item', 1);
+            playSound('countdown', 1);
           }
-          await new Promise((resolve) => setTimeout(resolve, 650));
-          set({ status: 'playing', countdown: 0, startedAt: performance.now(), banner: 'Go!' });
-          playSound('streak-threshold', 1);
-          setTimeout(() => get().banner === 'Go!' && set({ banner: null }), 700);
+          await sleep(700);
+          if (get().status !== 'countdown') return;
+          set({ status: 'playing', countdown: 0, startedAt: performance.now() });
+          playSound('go', 1);
+          setMusicIntensity(1);
+          startMusic();
+          showBanner({ title: 'Go!', subtitle: worldForLevel(1).name }, 900);
+          cheer('happy', 'Pop them all!');
         },
 
         tick: (rawDelta, now) => {
@@ -148,6 +230,8 @@ export const useGameStore = create<GameState & GameActions>()(
           const deltaMs = clamp(rawDelta, 0, 50);
           const difficulty = getDifficulty(state.score);
           const slow = now - state.startedAt < state.slowmoUntil ? 0.45 : 1;
+          // Taller screens get proportionally faster falls, so the time to react feels the same.
+          const heightScale = state.arenaHeight / ARENA_HEIGHT;
 
           let spawnAccumulator = state.spawnAccumulator + deltaMs * slow;
           let spawnIndex = state.spawnIndex;
@@ -165,14 +249,14 @@ export const useGameStore = create<GameState & GameActions>()(
           const living: Token[] = [];
 
           for (const token of tokens) {
-            const y = token.y + (token.speed * slow * deltaMs) / 1000;
-            if (y > ARENA_HEIGHT + token.radius) {
+            const y = token.y + (token.speed * heightScale * slow * deltaMs) / 1000;
+            if (y > state.arenaHeight + token.radius) {
               if (token.type === 'standard' || token.type === 'golden') {
                 lives -= 1;
                 streak = 0;
                 missed = true;
                 log.push({ t: Math.round(now - state.startedAt), kind: 'miss' });
-                pops.push({ id: now + Math.random(), x: token.x, y: ARENA_HEIGHT - 24, label: 'Miss', kind: 'miss' });
+                pops.push({ id: now + Math.random(), x: token.x, y: state.arenaHeight - 30, label: 'Miss', kind: 'miss' });
                 if (lives <= 0) break;
               }
               continue;
@@ -184,6 +268,8 @@ export const useGameStore = create<GameState & GameActions>()(
           if (missed) {
             playSound('life-lost', 1);
             vibrate(30);
+            setMusicIntensity(1);
+            cheer('sad', SAD_LINES[Math.floor(Math.random() * SAD_LINES.length)]);
           }
 
           set({
@@ -210,7 +296,7 @@ export const useGameStore = create<GameState & GameActions>()(
           const now = performance.now();
           const t = Math.round(now - state.startedAt);
           const points = pointsFor(token.type, state.streak);
-          let { score, streak, lives, slowmoUntil, banner } = state;
+          let { score, streak, lives, slowmoUntil } = state;
           let shake = state.shake;
           let label = points > 0 ? `+${points}` : '';
 
@@ -218,7 +304,7 @@ export const useGameStore = create<GameState & GameActions>()(
             case 'standard':
               score += points;
               streak += 1;
-              playSound('token-tap', clamp(streak / 20, 0.8, 2.2));
+              playSound(POP_SOUND[token.skin] ?? 'pop-coin', clamp(0.8 + streak / 25, 0.8, 2.2));
               vibrate(8);
               break;
             case 'golden':
@@ -226,6 +312,7 @@ export const useGameStore = create<GameState & GameActions>()(
               streak += 1;
               playSound('golden-token', 1);
               vibrate(12);
+              cheer('wow', 'Shiny!');
               break;
             case 'rocket':
               streak += 1;
@@ -233,6 +320,7 @@ export const useGameStore = create<GameState & GameActions>()(
               label = 'Slow-mo!';
               playSound('rocket-booster', 1);
               vibrate(15);
+              cheer('excited', 'Slooow mooo!');
               break;
             case 'bomb':
               score = Math.max(0, score + points);
@@ -242,35 +330,49 @@ export const useGameStore = create<GameState & GameActions>()(
               shake = now;
               playSound('bomb', 1);
               vibrate([60, 30, 60]);
+              setMusicIntensity(1);
+              cheer('sad', 'Ouch! Not the bombs!');
               break;
           }
 
           const prevMultiplier = getStreakMultiplier(state.streak);
           const multiplier = getStreakMultiplier(streak);
           if (multiplier > prevMultiplier) {
-            banner = `Combo x${multiplier}!`;
+            showBanner({ title: `Combo x${multiplier}!` });
             playSound('streak-threshold', 1);
+            setMusicIntensity(multiplier);
+            cheer('excited', multiplier >= 3 ? 'FEVER MODE!' : `x${multiplier} combo!`);
+          } else if (token.type === 'standard' && streak > 0 && streak % 8 === 0) {
+            cheer('happy', HAPPY_LINES[Math.floor(Math.random() * HAPPY_LINES.length)]);
           }
 
           const crossed = MILESTONES.find((m) => score >= m && state.score < m);
           if (crossed) {
-            banner = milestoneLabel(crossed);
+            showBanner({ title: milestoneLabel(crossed) });
             playSound('score-milestone', crossed >= 1000 ? 1.25 : 1);
           }
 
-          if (banner !== state.banner) {
-            const shown = banner;
-            setTimeout(() => get().banner === shown && set({ banner: null }), 1100);
+          const level = levelForScore(score);
+          if (level > state.level) {
+            const world = worldForLevel(level);
+            showBanner({ title: `Level ${level}`, subtitle: `Welcome to ${world.name}` }, 1800);
+            playSound('level-up', 1);
+            vibrate([20, 40, 20, 40, 60]);
+            cheer('wow', `${world.name}! Woah!`);
           }
+
+          const collected = token.type === 'bomb' || token.type === 'rocket' ? state.collected : { ...state.collected, [token.skin]: (state.collected[token.skin] ?? 0) + 1 };
 
           set({
             score,
+            level,
             streak,
             bestStreak: Math.max(state.bestStreak, streak),
+            maxMultiplier: Math.max(state.maxMultiplier, multiplier),
             lives: Math.max(0, lives),
             multiplier,
+            collected,
             slowmoUntil,
-            banner,
             shake,
             tokens: state.tokens.filter((entry) => entry.id !== tokenId),
             log: [...state.log, { t, kind: token.type }],
@@ -280,7 +382,32 @@ export const useGameStore = create<GameState & GameActions>()(
           if (lives <= 0) void finishRound();
         },
 
-        reset: () => set({ ...roundDefaults, status: 'idle', roundId: null }),
+        pause: () => {
+          if (get().status !== 'playing') return;
+          set({ status: 'paused', pausedAt: performance.now() });
+          stopMusic();
+          playSound('button-click', 1);
+        },
+
+        resume: () => {
+          const state = get();
+          if (state.status !== 'paused') return;
+          // Shift the round clock so the pause doesn't count toward slow-mo or the server's timing.
+          set({ status: 'playing', startedAt: state.startedAt + (performance.now() - state.pausedAt) });
+          setMusicIntensity(state.multiplier);
+          startMusic();
+          playSound('go', 1);
+        },
+
+        quit: () => {
+          const status = get().status;
+          if (status === 'playing' || status === 'paused') void finishRound();
+        },
+
+        exit: () => {
+          stopMusic();
+          set({ ...roundDefaults, status: 'idle', roundId: null, mascot: { mood: 'idle', line: null, at: 0 } });
+        },
       };
     },
     {

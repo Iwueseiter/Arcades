@@ -24,7 +24,7 @@ export function AppShell({ initialTab, referrer }: { initialTab: TabId; referrer
   const [tab, setTab] = useState<TabId>(initialTab);
   const refresh = usePlayerStore((s) => s.refresh);
   const initWallet = useWalletStore((s) => s.init);
-  const inRound = useGameStore((s) => s.status === 'playing' || s.status === 'countdown');
+  const inRound = useGameStore((s) => s.status !== 'idle');
 
   useEffect(() => {
     void refresh().then(() => initWallet());

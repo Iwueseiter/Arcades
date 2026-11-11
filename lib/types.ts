@@ -55,3 +55,17 @@ export type VoucherResponse = {
   deadline: string;
   signature: `0x${string}`;
 };
+
+export type MergeToday = {
+  day: string;
+  number: number;
+  resetsInMs: number;
+  run:
+    | null
+    | { status: 'active'; runId: string; seed: number }
+    | { status: 'finished'; runId: string; score: number; maxTier: number; rank: number; reward: number };
+};
+
+export type MergeStartResponse = { runId: string; seed: number; day: string; number: number };
+
+export type MergeFinishResponse = { score: number; maxTier: number; reward: number; rank: number; player: PlayerSnapshot };

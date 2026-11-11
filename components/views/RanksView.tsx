@@ -38,6 +38,7 @@ function Row({ row, index }: { row: LeaderboardRow; index: number }) {
 }
 
 export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
+  const [board, setBoard] = useState<'merge' | 'arcade'>('merge');
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -45,14 +46,14 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setData(await api.leaderboard());
+      setData(await (board === 'merge' ? api.mergeLeaderboard() : api.leaderboard()));
       setFailed(false);
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [board]);
 
   useEffect(() => {
     void load();
@@ -67,12 +68,28 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
       <div className="card card-hero">
         <div className="row">
           <div>
-            <p className="eyebrow">Weekly leaderboard</p>
-            <h1 className="title-xl">Top tappers</h1>
+            <p className="eyebrow">{board === 'merge' ? 'Jelly Merge · today' : 'Treat Rush · this week'}</p>
+            <h1 className="title-xl">{board === 'merge' ? 'Top mergers' : 'Top tappers'}</h1>
           </div>
           <button type="button" className="icon-btn" onClick={load} aria-label="Refresh leaderboard" disabled={loading}>
             <RefreshCw size={17} className={loading ? 'animate-spin' : ''} />
           </button>
+        </div>
+        <div className="segmented" role="tablist" aria-label="Leaderboard">
+          {(['merge', 'arcade'] as const).map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={board === id}
+              onClick={() => {
+                setData(null);
+                setBoard(id);
+              }}
+            >
+              {id === 'merge' ? 'Jelly Merge' : 'Treat Rush'}
+            </button>
+          ))}
         </div>
         {data && (
           <span className="badge" style={{ marginTop: 10 }}>
@@ -125,7 +142,7 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
 
       {data && data.rows.length === 0 && (
         <div className="card" style={{ textAlign: 'center' }}>
-          <p className="title-md">No scores yet this week</p>
+          <p className="title-md">{board === 'merge' ? 'Nobody has solved today’s puzzle yet' : 'No scores yet this week'}</p>
           <p className="copy" style={{ margin: '6px 0 14px' }}>
             Play a ranked round and claim the top spot.
           </p>

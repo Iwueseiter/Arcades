@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { ExternalLink, LogOut, ShieldCheck, Volume2, Vibrate, Wallet } from 'lucide-react';
+import { ExternalLink, LogOut, Music, ShieldCheck, Volume2, Vibrate, Wallet } from 'lucide-react';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { Avatar } from '@/components/ui/Avatar';
 import { api } from '@/lib/api';
@@ -18,7 +18,7 @@ export function ProfileView() {
   const player = usePlayerStore((s) => s.player);
   const setPlayer = usePlayerStore((s) => s.setPlayer);
   const { account, chainState, disconnect } = useWalletStore();
-  const { muted, haptics, toggleMuted, toggleHaptics } = useSettingsStore();
+  const { muted, music, haptics, toggleMuted, toggleMusic, toggleHaptics } = useSettingsStore();
   const owned = useOwnedItems();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -151,6 +151,12 @@ export function ProfileView() {
             <Volume2 size={18} color="var(--muted)" /> Sound effects
           </span>
           <button type="button" role="switch" aria-checked={!muted} aria-label="Sound effects" className="toggle" onClick={toggleMuted} />
+        </div>
+        <div className="row">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700 }}>
+            <Music size={18} color="var(--muted)" /> Music
+          </span>
+          <button type="button" role="switch" aria-checked={music} aria-label="Music" className="toggle" onClick={toggleMusic} />
         </div>
         <div className="row">
           <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700 }}>
