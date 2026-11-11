@@ -1,10 +1,11 @@
-import { Gamepad2, Gift, ShoppingBag, Trophy } from 'lucide-react';
+import { Gamepad2, Gift, ShoppingBag, Trophy, UserCircle2 } from 'lucide-react';
 
 const tabs = [
   { id: 'Play', icon: Gamepad2 },
   { id: 'Ranks', icon: Trophy },
   { id: 'Shop', icon: ShoppingBag },
-  { id: 'Invite', icon: Gift },
+  { id: 'Claim', icon: Gift },
+  { id: 'Me', icon: UserCircle2 },
 ];
 
 export function BottomNav({ activeTab, onSelect }: { activeTab: string; onSelect: (tab: string) => void }) {

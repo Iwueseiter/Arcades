@@ -6,10 +6,13 @@ import { GameArena } from '@/components/game/GameArena';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { TopBar } from '@/components/layout/TopBar';
 import { GlassCard } from '@/components/ui/GlassCard';
+import Link from 'next/link';
 import { useGameStore } from '@/lib/game-store';
+import { goodDollarConfig } from '@/lib/gooddollar-config';
 import { useLeaderboardStore } from '@/lib/leaderboard-store';
+import { useProfileStore } from '@/lib/profile-store';
 import { useWalletStore } from '@/lib/wallet-store';
-import { Coins, Gift, Sparkles, Trophy, Zap } from 'lucide-react';
+import { Coins, Gift, ShieldCheck, Sparkles, Trophy, Zap } from 'lucide-react';
 
 const shopItems = [
   { id: 'starter-pack', name: 'Starter Pack', price: 5, accent: 'gold', blurb: 'Boost your first run with 10 bonus tokens.' },
@@ -23,6 +26,7 @@ export default function Home() {
   const { balance, purchases, buyItem, addBalance, syncFromServer: syncWallet } = useWalletStore();
   const { entries, updateScore, syncFromServer: syncLeaderboard } = useLeaderboardStore();
   const { bestScore, streak, roundsUsed, totalRounds } = useGameStore();
+  const { name, verified, streak: profileStreak, gamesPlayed, totalScore, dailyReward, lastClaimDate, claimDaily } = useProfileStore();
 
   useEffect(() => {
     void syncWallet();
@@ -36,12 +40,15 @@ export default function Home() {
   }, [bestScore, updateScore]);
 
   const roundsLeft = Math.max(0, totalRounds - roundsUsed);
+  const rewardPoolLabel = goodDollarConfig.mockContractsEnabled ? '27 G$' : 'Live G$';
   const statItems = [
     { label: 'Rounds left', value: String(roundsLeft), icon: Sparkles },
     { label: 'Best score', value: bestScore.toLocaleString(), icon: Trophy },
-    { label: 'Reward pool', value: '27 G$', icon: Coins },
+    { label: 'Reward pool', value: rewardPoolLabel, icon: Coins },
     { label: 'Streak', value: `x${Math.max(1, streak > 0 ? Math.min(4, Math.floor(streak / 10) + 1) : 1)}`, icon: Zap },
   ];
+
+  const claimAvailableToday = lastClaimDate !== new Date().toISOString().slice(0, 10);
 
   const renderContent = () => {
     if (activeTab === 'Shop') {
@@ -101,6 +108,85 @@ export default function Home() {
                 <strong>{entry.score.toLocaleString()}</strong>
               </div>
             ))}
+          </div>
+        </GlassCard>
+      );
+    }
+
+    if (activeTab === 'Claim') {
+      return (
+        <GlassCard className="p-4">
+          <p className="eyebrow">GoodDollar rewards</p>
+          <h1 className="headline-xl">Claim daily G$</h1>
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center justify-between rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+              <span>Reward</span>
+              <span>{dailyReward.toFixed(1)} G$</span>
+            </div>
+            <p className="text-sm text-slate-600">
+              {claimAvailableToday ? 'Claim your daily token reward to keep the streak moving.' : 'Today’s reward has already been claimed.'}
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary w-full"
+              disabled={!claimAvailableToday}
+              onClick={() => {
+                if (claimAvailableToday) {
+                  if (claimDaily()) {
+                    addBalance(dailyReward);
+                  }
+                }
+              }}
+            >
+              {claimAvailableToday ? `Claim ${dailyReward.toFixed(1)} G$` : 'Already claimed'}
+            </button>
+            <Link href="/claim" className="block text-center text-sm font-semibold text-indigo-600">
+              Open full claim page
+            </Link>
+          </div>
+        </GlassCard>
+      );
+    }
+
+    if (activeTab === 'Me') {
+      const profileName = name || 'Player One';
+      return (
+        <GlassCard className="p-4">
+          <p className="eyebrow">Player profile</p>
+          <h1 className="headline-xl">{profileName}</h1>
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center justify-between rounded-2xl bg-slate-100 px-3 py-2 text-sm">
+              <span className="text-slate-500">Verification</span>
+              <span className="flex items-center gap-1 font-bold text-emerald-600">
+                <ShieldCheck size={15} />
+                {verified ? 'Verified' : 'Pending'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-indigo-50 p-3">
+                <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Streak</div>
+                <div className="mt-2 text-2xl font-extrabold text-indigo-700">{profileStreak}</div>
+              </div>
+              <div className="rounded-2xl bg-amber-50 p-3">
+                <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Games</div>
+                <div className="mt-2 text-2xl font-extrabold text-amber-700">{gamesPlayed}</div>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Total score</span>
+                <span className="font-bold text-emerald-700">{totalScore.toLocaleString()}</span>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-slate-100 p-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Last claim</span>
+                <span className="font-bold text-slate-700">{lastClaimDate ?? 'Never'}</span>
+              </div>
+            </div>
+            <Link href="/me" className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white">
+              Open full profile page
+            </Link>
           </div>
         </GlassCard>
       );

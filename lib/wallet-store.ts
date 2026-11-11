@@ -1,5 +1,23 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { goodDollarConfig } from '@/lib/gooddollar-config';
+
+const parsePurchases = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is string => typeof entry === 'string');
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === 'string') : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+};
 
 export type WalletState = {
   balance: number;
@@ -22,14 +40,14 @@ const fetchWalletState = async () => {
 export const useWalletStore = create<WalletState>()(
   persist(
     (set, get) => ({
-      balance: 24.5,
+      balance: goodDollarConfig.mockContractsEnabled ? 24.5 : 0,
       purchases: [],
       syncFromServer: async () => {
         const serverState = await fetchWalletState();
         if (!serverState) return;
         set({
           balance: Number(serverState.balance ?? 0),
-          purchases: Array.isArray(serverState.purchases) ? serverState.purchases : [],
+          purchases: parsePurchases(serverState.purchases),
         });
       },
       addBalance: (amount: number) => {

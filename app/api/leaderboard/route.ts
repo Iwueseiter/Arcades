@@ -15,6 +15,14 @@ const defaultEntries: LeaderboardEntry[] = [
   { name: 'Milo', score: 9250, badge: '🔥' },
 ];
 
+function serializeEntries(entries: Array<{ name: string; score: number; badge: string }>) {
+  return entries.map((entry) => ({
+    name: entry.name,
+    score: entry.score,
+    badge: entry.badge,
+  }));
+}
+
 export async function GET() {
   const dbEntries = await prisma.leaderboardEntry.findMany({ orderBy: { score: 'desc' }, take: 5 });
 
@@ -23,13 +31,7 @@ export async function GET() {
     return NextResponse.json({ entries: defaultEntries });
   }
 
-  return NextResponse.json({
-    entries: dbEntries.map((entry) => ({
-      name: entry.name,
-      score: entry.score,
-      badge: entry.badge,
-    })),
-  });
+  return NextResponse.json({ entries: serializeEntries(dbEntries) });
 }
 
 export async function POST(request: Request) {
@@ -40,38 +42,40 @@ export async function POST(request: Request) {
     entry?: LeaderboardEntry;
   };
 
+  const getTopEntries = async () => {
+    const all = await prisma.leaderboardEntry.findMany({ orderBy: { score: 'desc' }, take: 5 });
+    return serializeEntries(all);
+  };
+
   if (body.action === 'update' && body.name && typeof body.score === 'number') {
     const existing = await prisma.leaderboardEntry.findUnique({ where: { name: body.name } });
 
     if (existing) {
-      const updated = await prisma.leaderboardEntry.update({
+      await prisma.leaderboardEntry.update({
         where: { id: existing.id },
         data: { score: Math.max(existing.score, body.score) },
       });
 
-      const all = await prisma.leaderboardEntry.findMany({ orderBy: { score: 'desc' }, take: 5 });
-      return NextResponse.json({ entries: all.map((entry) => ({ name: entry.name, score: entry.score, badge: entry.badge })) });
+      return NextResponse.json({ entries: await getTopEntries() });
     }
 
-    const created = await prisma.leaderboardEntry.create({
+    await prisma.leaderboardEntry.create({
       data: { name: body.name, score: body.score, badge: '✨' },
     });
 
-    const all = await prisma.leaderboardEntry.findMany({ orderBy: { score: 'desc' }, take: 5 });
-    return NextResponse.json({ entries: all.map((entry) => ({ name: entry.name, score: entry.score, badge: entry.badge })) });
+    return NextResponse.json({ entries: await getTopEntries() });
   }
 
   if (body.action === 'add' && body.entry) {
     const existing = await prisma.leaderboardEntry.findUnique({ where: { name: body.entry.name } });
 
     if (existing) {
-      const updated = await prisma.leaderboardEntry.update({
+      await prisma.leaderboardEntry.update({
         where: { id: existing.id },
         data: { score: Math.max(existing.score, body.entry.score), badge: body.entry.badge },
       });
 
-      const all = await prisma.leaderboardEntry.findMany({ orderBy: { score: 'desc' }, take: 5 });
-      return NextResponse.json({ entries: all.map((entry) => ({ name: entry.name, score: entry.score, badge: entry.badge })) });
+      return NextResponse.json({ entries: await getTopEntries() });
     }
 
     await prisma.leaderboardEntry.create({
@@ -79,6 +83,5 @@ export async function POST(request: Request) {
     });
   }
 
-  const all = await prisma.leaderboardEntry.findMany({ orderBy: { score: 'desc' }, take: 5 });
-  return NextResponse.json({ entries: all.map((entry) => ({ name: entry.name, score: entry.score, badge: entry.badge })) });
+  return NextResponse.json({ entries: await getTopEntries() });
 }
