@@ -199,7 +199,7 @@ export default function Home() {
               </div>
             </div>
             <Link href="/me" className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white">
-              Open full profile page
+              Open full profile page 
             </Link>
           </div>
         </GlassCard>
