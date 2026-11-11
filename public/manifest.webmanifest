@@ -4,8 +4,8 @@
   "description": "GoodTap is a bright Web3 arcade game for streaks, rewards, and GoodDollar moments.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f7ff",
-  "theme_color": "#3c63ff",
+  "background_color": "#0c0a22",
+  "theme_color": "#0c0a22",
   "orientation": "portrait",
   "icons": [
     {

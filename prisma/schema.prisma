@@ -7,33 +7,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Wallet {
-  id        String   @id @default(cuid())
-  balance   Float    @default(24.5)
-  purchases String   @default("[]")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+/// A player is either a guest (identified by a signed session cookie) or a wallet that signed in.
+model Player {
+  id            String      @id @default(cuid())
+  address       String?     @unique
+  name          String      @default("")
+  email         String      @default("")
+  bestScore     Int         @default(0)
+  weekKey       String      @default("")
+  weeklyBest    Int         @default(0)
+  gamesPlayed   Int         @default(0)
+  totalScore    Int         @default(0)
+  roundsDay     String      @default("")
+  roundsUsed    Int         @default(0)
+  /// G$ earned from ranked rounds, in thousandths of a G$. Redeemed on-chain through signed vouchers.
+  earnedMilli   Int         @default(0)
+  /// Demo-mode economy, used when no arcade contract is configured.
+  demoBalance   Float       @default(25)
+  demoPurchases String      @default("[]")
+  demoLastClaim String?
+  demoStreak    Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  rounds        GameRound[]
+
+  @@index([weekKey, weeklyBest])
 }
 
-model Profile {
-  id            String    @id @default(cuid())
-  name          String    @default("")
-  email         String    @default("")
-  verified      Boolean   @default(false)
-  streak        Int       @default(0)
-  gamesPlayed   Int       @default(0)
-  totalScore    Int       @default(0)
-  lastClaimDate String?
-  dailyReward   Float     @default(2.4)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-}
+model GameRound {
+  id          String    @id @default(cuid())
+  playerId    String
+  player      Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  seed        Int
+  ranked      Boolean
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  score       Int?
+  rewardMilli Int       @default(0)
 
-model LeaderboardEntry {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  score     Int      @default(0)
-  badge     String   @default("✨")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@index([playerId, startedAt])
 }

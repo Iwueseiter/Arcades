@@ -139,6 +139,12 @@ export function playSound(eventName: SoundEventName, intensity = 1) {
   }
 }
 
+/** Browsers only allow audio after a user gesture; call this from one. */
+export function unlockAudio() {
+  const ctx = ensureAudioContext();
+  if (ctx && ctx.state === 'suspended') void ctx.resume();
+}
+
 export function toggleAudioMute(muted: boolean) {
   audioState.muted = muted;
 }
