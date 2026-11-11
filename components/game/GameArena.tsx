@@ -63,7 +63,7 @@ export function GameArena() {
       <div className="streak-bar-wrap">
         <div className="streak-meta">
           <span>Streak x{multiplier}</span>
-          <span>{streak}/50</span>
+          <span>{streak}/50</span> 
         </div>
         <div className="progress-bar">
           <span style={{ width: `${Math.min((streak / 50) * 100, 100)}%` }} />
