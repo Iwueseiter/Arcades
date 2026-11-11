@@ -15,6 +15,20 @@ model Wallet {
   updatedAt DateTime @updatedAt
 }
 
+model Profile {
+  id            String    @id @default(cuid())
+  name          String    @default("")
+  email         String    @default("")
+  verified      Boolean   @default(false)
+  streak        Int       @default(0)
+  gamesPlayed   Int       @default(0)
+  totalScore    Int       @default(0)
+  lastClaimDate String?
+  dailyReward   Float     @default(2.4)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
 model LeaderboardEntry {
   id        String   @id @default(cuid())
   name      String   @unique

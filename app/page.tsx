@@ -9,6 +9,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import Link from 'next/link';
 import { useGameStore } from '@/lib/game-store';
 import { goodDollarConfig } from '@/lib/gooddollar-config';
+import { claimGoodDollarReward } from '@/lib/gooddollar-wallet';
 import { useLeaderboardStore } from '@/lib/leaderboard-store';
 import { useProfileStore } from '@/lib/profile-store';
 import { useWalletStore } from '@/lib/wallet-store';
@@ -26,12 +27,23 @@ export default function Home() {
   const { balance, purchases, buyItem, addBalance, syncFromServer: syncWallet } = useWalletStore();
   const { entries, updateScore, syncFromServer: syncLeaderboard } = useLeaderboardStore();
   const { bestScore, streak, roundsUsed, totalRounds } = useGameStore();
-  const { name, verified, streak: profileStreak, gamesPlayed, totalScore, dailyReward, lastClaimDate, claimDaily } = useProfileStore();
+  const {
+    name,
+    verified,
+    streak: profileStreak,
+    gamesPlayed,
+    totalScore,
+    dailyReward,
+    lastClaimDate,
+    claimDaily,
+    syncFromServer: syncProfile,
+  } = useProfileStore();
 
   useEffect(() => {
     void syncWallet();
     void syncLeaderboard();
-  }, [syncWallet, syncLeaderboard]);
+    void syncProfile();
+  }, [syncWallet, syncLeaderboard, syncProfile]);
 
   useEffect(() => {
     if (bestScore > 0) {
@@ -130,10 +142,12 @@ export default function Home() {
               type="button"
               className="btn btn-primary w-full"
               disabled={!claimAvailableToday}
-              onClick={() => {
+              onClick={async () => {
                 if (claimAvailableToday) {
-                  if (claimDaily()) {
-                    addBalance(dailyReward);
+                  const claimed = await claimDaily();
+                  if (claimed) {
+                    const liveClaim = await claimGoodDollarReward(dailyReward, goodDollarConfig.walletAddress);
+                    addBalance(liveClaim.amount);
                   }
                 }
               }}

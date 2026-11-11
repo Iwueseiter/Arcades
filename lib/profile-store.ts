@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ProfileState = {
+export type ProfileSnapshot = {
   name: string;
   email: string;
   verified: boolean;
@@ -10,76 +10,112 @@ export type ProfileState = {
   totalScore: number;
   lastClaimDate: string | null;
   dailyReward: number;
-  signUp: (name: string, email: string) => void;
-  claimDaily: () => boolean;
-  recordGame: (score: number) => void;
+};
+
+export type ProfileState = ProfileSnapshot & {
+  syncFromServer: () => Promise<void>;
+  signUp: (name: string, email: string) => Promise<void>;
+  claimDaily: () => Promise<boolean>;
+  recordGame: (score: number) => Promise<void>;
+};
+
+const defaultProfile: ProfileSnapshot = {
+  name: '',
+  email: '',
+  verified: false,
+  streak: 0,
+  gamesPlayed: 0,
+  totalScore: 0,
+  lastClaimDate: null,
+  dailyReward: 2.4,
 };
 
 const getTodayKey = () => new Date().toISOString().slice(0, 10);
 
-const getNextStreak = (currentStreak: number, lastClaimDate: string | null) => {
-  const today = new Date();
-  const todayKey = getTodayKey();
-
-  if (!lastClaimDate) {
-    return 1;
-  }
-
-  const lastDate = new Date(`${lastClaimDate}T12:00:00Z`);
-  const diffDays = Math.round((today.getTime() - lastDate.getTime()) / 86400000);
-
-  if (diffDays === 1 && lastClaimDate !== todayKey) {
-    return currentStreak + 1;
-  }
-
-  if (diffDays === 0) {
-    return currentStreak;
-  }
-
-  return 1;
-};
+const normalizeProfile = (profile: Partial<ProfileSnapshot> | null | undefined): ProfileSnapshot => ({
+  ...defaultProfile,
+  ...profile,
+  name: profile?.name || '',
+  email: profile?.email || '',
+  verified: !!profile?.verified,
+  streak: Number(profile?.streak ?? 0),
+  gamesPlayed: Number(profile?.gamesPlayed ?? 0),
+  totalScore: Number(profile?.totalScore ?? 0),
+  lastClaimDate: profile?.lastClaimDate ?? null,
+  dailyReward: Number(profile?.dailyReward ?? 2.4),
+});
 
 export const useProfileStore = create<ProfileState>()(
   persist(
     (set, get) => ({
-      name: '',
-      email: '',
-      verified: false,
-      streak: 0,
-      gamesPlayed: 0,
-      totalScore: 0,
-      lastClaimDate: null,
-      dailyReward: 2.4,
-      signUp: (name, email) => {
-        set({
-          name: name.trim() || 'Player One',
-          email: email.trim() || 'player@goodtap.app',
-          verified: true,
-          streak: get().streak || 1,
-        });
+      ...defaultProfile,
+      syncFromServer: async () => {
+        const response = await fetch('/api/profile', { cache: 'no-store' });
+        if (!response.ok) return;
+        const profile = (await response.json()) as Partial<ProfileSnapshot> | null;
+        set(normalizeProfile(profile));
       },
-      claimDaily: () => {
+      signUp: async (name, email) => {
+        const response = await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'signup', name, email }),
+        });
+
+        if (!response.ok) {
+          const fallback = {
+            ...defaultProfile,
+            name: name.trim() || 'Player One',
+            email: email.trim() || 'player@goodtap.app',
+            verified: true,
+            streak: get().streak || 1,
+          };
+          set(fallback);
+          return;
+        }
+
+        const profile = (await response.json()) as Partial<ProfileSnapshot> | null;
+        set(normalizeProfile(profile));
+      },
+      claimDaily: async () => {
         const todayKey = getTodayKey();
         const current = get();
-
         if (current.lastClaimDate === todayKey) {
           return false;
         }
 
-        set({
-          lastClaimDate: todayKey,
-          streak: getNextStreak(current.streak, current.lastClaimDate),
-          verified: true,
+        const response = await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'claim' }),
         });
 
+        if (!response.ok) {
+          return false;
+        }
+
+        const profile = (await response.json()) as Partial<ProfileSnapshot> | null;
+        set(normalizeProfile(profile));
         return true;
       },
-      recordGame: (score) => {
-        set((state) => ({
-          gamesPlayed: state.gamesPlayed + 1,
-          totalScore: state.totalScore + Math.max(0, score),
-          streak: state.streak || 1,
-        }));
+      recordGame: async (score) => {
+        const response = await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'record-game', score }),
+        });
+
+        if (!response.ok) {
+          set((state) => ({
+            gamesPlayed: state.gamesPlayed + 1,
+            totalScore: state.totalScore + Math.max(0, Math.round(score)),
+            streak: state.streak || 1,
+          }));
+          return;
+        }
+
+        const profile = (await response.json()) as Partial<ProfileSnapshot> | null;
+        set(normalizeProfile(profile));
       },
     }),
     {

@@ -1,24 +1,33 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { CheckCircle2, Coins, Sparkles } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { goodDollarConfig } from '@/lib/gooddollar-config';
+import { claimGoodDollarReward } from '@/lib/gooddollar-wallet';
 import { useProfileStore } from '@/lib/profile-store';
 import { useWalletStore } from '@/lib/wallet-store';
 
 export default function ClaimPage() {
-  const { claimDaily, dailyReward, lastClaimDate, streak, verified } = useProfileStore();
+  const { claimDaily, dailyReward, lastClaimDate, streak, verified, syncFromServer } = useProfileStore();
   const { addBalance, balance } = useWalletStore();
+  useEffect(() => {
+    void syncFromServer();
+  }, [syncFromServer]);
+
   const todayKey = new Date().toISOString().slice(0, 10);
   const alreadyClaimed = lastClaimDate === todayKey;
 
-  const handleClaim = () => {
+  const handleClaim = async () => {
     if (alreadyClaimed) {
       return;
     }
 
-    if (claimDaily()) {
-      addBalance(dailyReward);
+    const claimed = await claimDaily();
+    if (claimed) {
+      const liveClaim = await claimGoodDollarReward(dailyReward, goodDollarConfig.walletAddress);
+      addBalance(liveClaim.amount);
     }
   };
 

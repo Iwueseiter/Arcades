@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { goodDollarConfig } from '@/lib/gooddollar-config';
+import { getGoodDollarWalletState } from '@/lib/gooddollar-wallet';
 
 const parsePurchases = (value: unknown): string[] => {
   if (Array.isArray(value)) {
@@ -43,11 +44,15 @@ export const useWalletStore = create<WalletState>()(
       balance: goodDollarConfig.mockContractsEnabled ? 24.5 : 0,
       purchases: [],
       syncFromServer: async () => {
+        const liveWallet = await getGoodDollarWalletState();
         const serverState = await fetchWalletState();
-        if (!serverState) return;
+
+        if (!serverState && !liveWallet.liveMode) return;
+
+        const nextBalance = liveWallet.liveMode ? liveWallet.balance : Number(serverState?.balance ?? 0);
         set({
-          balance: Number(serverState.balance ?? 0),
-          purchases: parsePurchases(serverState.purchases),
+          balance: nextBalance,
+          purchases: parsePurchases(serverState?.purchases ?? []),
         });
       },
       addBalance: (amount: number) => {

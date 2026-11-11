@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { Heart, Sparkles, Trophy } from 'lucide-react';
 import { useGameStore } from '@/lib/game-store';
 import { ARENA_HEIGHT, ARENA_WIDTH } from '@/lib/game-rules';
+import { useProfileStore } from '@/lib/profile-store';
 
 const tokenLabels: Record<string, string> = {
   standard: '10',
@@ -15,7 +16,20 @@ const tokenLabels: Record<string, string> = {
 export function GameArena() {
   const rafId = useRef<number | null>(null);
   const lastTimestampRef = useRef<number>(0);
+  const roundLoggedRef = useRef(false);
   const { roundStatus, score, bestScore, lives, streak, multiplier, tokens, startRound, tick, tapToken, latestMessage } = useGameStore();
+  const { recordGame } = useProfileStore();
+
+  useEffect(() => {
+    if (roundStatus === 'playing') {
+      roundLoggedRef.current = false;
+    }
+
+    if (roundStatus === 'ended' && !roundLoggedRef.current) {
+      roundLoggedRef.current = true;
+      void recordGame(score);
+    }
+  }, [roundStatus, score, recordGame]);
 
   useEffect(() => {
     const step = (timestamp: number) => {

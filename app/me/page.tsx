@@ -1,12 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { CheckCircle2, ShieldCheck, Sparkles, Trophy } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useProfileStore } from '@/lib/profile-store';
 
 export default function MePage() {
   const profile = useProfileStore();
+  useEffect(() => {
+    void profile.syncFromServer();
+  }, [profile.syncFromServer]);
   const profileName = profile.name || 'Player One';
 
   return (
