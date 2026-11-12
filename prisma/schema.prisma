@@ -3,8 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // On Supabase: the pooled connection (port 6543) for the app, and the direct one (port 5432) for migrations.
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 /// A player is either a guest (identified by a signed session cookie) or a wallet that signed in.

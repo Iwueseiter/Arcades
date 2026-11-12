@@ -23,6 +23,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://xurri:xurri@localhost:5432/xurri_test
+      DIRECT_URL: postgresql://xurri:xurri@localhost:5432/xurri_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

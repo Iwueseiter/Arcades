@@ -76,13 +76,20 @@ From the Safe or any wallet, send G$ to:
 
 The shop holds nothing, so it needs no funding.
 
-## 5. Database
+## 5. Database (Supabase)
 
-Create a Postgres database (Neon, Supabase or Railway), turn on daily backups, and copy its connection string. Then, from your machine:
+1. At https://supabase.com, create a project (pick the region closest to your players) and save the database password.
+2. Click **Connect** at the top of the project and copy two connection strings:
+   - **Transaction pooler** (port 6543): this is `DATABASE_URL`. Add `?pgbouncer=true&connection_limit=1` to the end.
+   - **Session pooler** (port 5432): this is `DIRECT_URL`.
+   - In both, replace `[YOUR-PASSWORD]` with your database password.
+3. Create the tables from your machine:
 
 ```bash
-DATABASE_URL="postgres://..." npm run db:migrate
+DATABASE_URL="<session pooler string>" DIRECT_URL="<session pooler string>" npm run db:migrate
 ```
+
+Supabase backs up the database daily on its paid plan; on the free plan, export it now and then from the dashboard.
 
 ## 6. Host the app on Vercel
 
@@ -91,7 +98,8 @@ DATABASE_URL="postgres://..." npm run db:migrate
 
 | Variable | Value |
 | --- | --- |
-| `DATABASE_URL` | the hosted Postgres |
+| `DATABASE_URL` | Supabase transaction pooler string (port 6543, ending `?pgbouncer=true&connection_limit=1`) |
+| `DIRECT_URL` | Supabase session pooler string (port 5432) |
 | `NEXT_PUBLIC_CHAIN_ID` | `42220` |
 | `NEXT_PUBLIC_RPC_URL` | `https://forno.celo.org` (or a paid RPC for more traffic) |
 | `NEXT_PUBLIC_GIFT_ADDRESS` | from step 3 |
