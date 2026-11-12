@@ -16,7 +16,8 @@
     "contracts:test-token": "cd contracts && forge script script/TestToken.s.sol --tc DeployTestToken --rpc-url celo_sepolia --broadcast",
     "contracts:deploy:testnet": "cd contracts && forge script script/Deploy.s.sol --rpc-url celo_sepolia --broadcast",
     "contracts:simulate": "cd contracts && forge script script/Deploy.s.sol --rpc-url celo",
-    "contracts:deploy": "cd contracts && forge script script/Deploy.s.sol --rpc-url celo --broadcast --verify"
+    "contracts:deploy": "cd contracts && forge script script/Deploy.s.sol --rpc-url celo --broadcast --verify",
+    "deploy:mainnet": "bash scripts/deploy-mainnet.sh"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
