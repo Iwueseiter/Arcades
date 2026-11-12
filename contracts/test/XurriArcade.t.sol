@@ -6,7 +6,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {GoodTapArcade, IIdentity} from "../src/GoodTapArcade.sol";
+import {XurriArcade, IIdentity} from "../src/XurriArcade.sol";
 
 contract MockGD is ERC20 {
     constructor() ERC20("GoodDollar", "G$") {}
@@ -28,8 +28,8 @@ contract MockIdentity is IIdentity {
     }
 }
 
-contract GoodTapArcadeTest is Test {
-    GoodTapArcade internal arcade;
+contract XurriArcadeTest is Test {
+    XurriArcade internal arcade;
     MockGD internal gd;
 
     address internal owner = makeAddr("owner");
@@ -48,7 +48,7 @@ contract GoodTapArcadeTest is Test {
         vm.warp(1_760_000_000);
         signer = vm.addr(signerKey);
         gd = new MockGD();
-        arcade = new GoodTapArcade(
+        arcade = new XurriArcade(
             IERC20(address(gd)),
             IIdentity(address(0)),
             signer,
@@ -78,7 +78,7 @@ contract GoodTapArcadeTest is Test {
         assertEq(gd.balanceOf(alice), DAILY);
 
         vm.prank(alice);
-        vm.expectRevert(GoodTapArcade.AlreadyClaimedToday.selector);
+        vm.expectRevert(XurriArcade.AlreadyClaimedToday.selector);
         arcade.claimDaily();
     }
 
@@ -126,7 +126,7 @@ contract GoodTapArcadeTest is Test {
         arcade.setIdentity(id);
 
         vm.prank(alice);
-        vm.expectRevert(GoodTapArcade.NotVerified.selector);
+        vm.expectRevert(XurriArcade.NotVerified.selector);
         arcade.claimDaily();
 
         id.set(alice, true);
@@ -139,7 +139,7 @@ contract GoodTapArcadeTest is Test {
         vm.prank(owner);
         arcade.withdraw(IERC20(address(gd)), owner, 1_000e18);
         vm.prank(alice);
-        vm.expectRevert(GoodTapArcade.InsufficientPool.selector);
+        vm.expectRevert(XurriArcade.InsufficientPool.selector);
         arcade.claimDaily();
     }
 
@@ -163,11 +163,11 @@ contract GoodTapArcadeTest is Test {
 
     function test_referrerRules() public {
         vm.prank(bob);
-        vm.expectRevert(GoodTapArcade.InvalidReferrer.selector); // alice never played
+        vm.expectRevert(XurriArcade.InvalidReferrer.selector); // alice never played
         arcade.setReferrer(alice);
 
         vm.prank(alice);
-        vm.expectRevert(GoodTapArcade.InvalidReferrer.selector);
+        vm.expectRevert(XurriArcade.InvalidReferrer.selector);
         arcade.setReferrer(alice);
 
         vm.prank(alice);
@@ -175,7 +175,7 @@ contract GoodTapArcadeTest is Test {
         vm.prank(bob);
         arcade.claimDaily();
         vm.prank(bob);
-        vm.expectRevert(GoodTapArcade.InvalidReferrer.selector); // bob already claimed
+        vm.expectRevert(XurriArcade.InvalidReferrer.selector); // bob already claimed
         arcade.setReferrer(alice);
     }
 
@@ -188,7 +188,7 @@ contract GoodTapArcadeTest is Test {
         assertEq(arcade.claimRewards(5e18, deadline, sig), 5e18);
 
         vm.prank(alice);
-        vm.expectRevert(GoodTapArcade.NothingToClaim.selector);
+        vm.expectRevert(XurriArcade.NothingToClaim.selector);
         arcade.claimRewards(5e18, deadline, sig);
 
         sig = _voucher(alice, 8e18, deadline);
@@ -201,7 +201,7 @@ contract GoodTapArcadeTest is Test {
         uint256 deadline = block.timestamp + 1 hours;
         bytes memory sig = _voucher(alice, 5e18, deadline);
         vm.prank(bob);
-        vm.expectRevert(GoodTapArcade.InvalidSignature.selector);
+        vm.expectRevert(XurriArcade.InvalidSignature.selector);
         arcade.claimRewards(5e18, deadline, sig);
     }
 
@@ -210,13 +210,13 @@ contract GoodTapArcadeTest is Test {
         bytes32 digest = arcade.hashRewardVoucher(alice, 5e18, deadline);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0xBAD, digest);
         vm.prank(alice);
-        vm.expectRevert(GoodTapArcade.InvalidSignature.selector);
+        vm.expectRevert(XurriArcade.InvalidSignature.selector);
         arcade.claimRewards(5e18, deadline, abi.encodePacked(r, s, v));
 
         bytes memory sig = _voucher(alice, 5e18, deadline);
         vm.warp(deadline + 1);
         vm.prank(alice);
-        vm.expectRevert(GoodTapArcade.VoucherExpired.selector);
+        vm.expectRevert(XurriArcade.VoucherExpired.selector);
         arcade.claimRewards(5e18, deadline, sig);
     }
 
@@ -228,7 +228,7 @@ contract GoodTapArcadeTest is Test {
 
         sig = _voucher(bob, 20e18, deadline);
         vm.prank(bob);
-        vm.expectRevert(GoodTapArcade.DailyBudgetExceeded.selector);
+        vm.expectRevert(XurriArcade.DailyBudgetExceeded.selector);
         arcade.claimRewards(20e18, deadline, sig);
 
         vm.warp(block.timestamp + 1 days);
@@ -253,9 +253,9 @@ contract GoodTapArcadeTest is Test {
         assertTrue(arcade.owns(alice, itemId));
         assertEq(arcade.poolBalance(), poolBefore + 12e18);
 
-        vm.expectRevert(GoodTapArcade.AlreadyOwned.selector);
+        vm.expectRevert(XurriArcade.AlreadyOwned.selector);
         arcade.buyItem(itemId);
-        vm.expectRevert(GoodTapArcade.ItemUnavailable.selector);
+        vm.expectRevert(XurriArcade.ItemUnavailable.selector);
         arcade.buyItem(keccak256("nope"));
         vm.stopPrank();
     }

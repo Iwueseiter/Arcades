@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'goodtap-api', timestamp: new Date().toISOString() });
+  return NextResponse.json({ ok: true, service: 'xurri-api', timestamp: new Date().toISOString() });
 }

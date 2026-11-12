@@ -52,13 +52,13 @@ export function ProfileView() {
       <div className="card card-hero" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <Avatar name={displayName} size={64} />
         <div style={{ minWidth: 0 }}>
-          <p className="eyebrow">{isVip ? '👑 VIP player' : account ? 'Wallet player' : 'Guest player'}</p>
+          <p className="eyebrow">{isVip ? '👑 VIP player' : account ? 'Wallet connected' : 'Playing as guest'}</p>
           <h1 className="title-xl" style={{ fontSize: '1.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {displayName}
           </h1>
           {account && chainState?.verified && onChainMode && (
             <span className="badge badge-mint" style={{ marginTop: 6 }}>
-              <ShieldCheck size={12} /> GoodDollar verified
+              <ShieldCheck size={12} /> Face check done
             </span>
           )}
         </div>
@@ -74,7 +74,7 @@ export function ProfileView() {
           <div className="stat-value num">{player?.gamesPlayed ?? '–'}</div>
         </div>
         <div className="stat">
-          <p className="eyebrow">Points</p>
+          <p className="eyebrow">All points</p>
           <div className="stat-value num">{player ? Intl.NumberFormat(undefined, { notation: 'compact' }).format(player.totalScore) : '–'}</div>
         </div>
       </div>
@@ -108,8 +108,7 @@ export function ProfileView() {
         ) : (
           <>
             <p className="copy" style={{ margin: '6px 0 12px' }}>
-              Connect MiniPay, Valora or any Celo wallet to earn real G$, keep shop items and show up as a wallet player on the board.
-              Your guest progress carries over the first time you connect.
+              Connect a wallet (like MiniPay) to win real G$ and keep your items. Your progress comes with you.
             </p>
             <ConnectButton block />
           </>
@@ -119,7 +118,7 @@ export function ProfileView() {
       <form className="card" onSubmit={save} style={{ display: 'grid', gap: 12 }}>
         <p className="eyebrow">Profile</p>
         <div className="field">
-          <label htmlFor="name">Display name</label>
+          <label htmlFor="name">Your name</label>
           <input id="name" className="input" value={name} maxLength={20} placeholder="Player One" onChange={(e) => setName(e.target.value)} />
         </div>
         <div className="field">
@@ -167,7 +166,7 @@ export function ProfileView() {
       </div>
 
       <p className="copy" style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--faint)' }}>
-        {onChainMode ? `Rewards paid in G$ on ${chainConfig.chain.name}` : 'Demo mode · on-chain rewards switch on once the contract is deployed'}
+        {onChainMode ? 'Prizes are paid in G$' : 'Test mode · real prizes start soon'}
       </p>
     </>
   );

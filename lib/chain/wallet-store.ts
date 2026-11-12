@@ -69,23 +69,23 @@ export function describeError(error: unknown): string {
     const revert = error.walk((e) => e instanceof ContractFunctionRevertedError);
     if (revert instanceof ContractFunctionRevertedError) {
       const messages: Record<string, string> = {
-        NotVerified: 'Verify your face with GoodDollar first to unlock claims.',
-        AlreadyClaimedToday: 'You already claimed today. Come back after 00:00 UTC.',
-        InvalidReferrer: 'That invite code is not valid. The inviter must have claimed at least once.',
-        ReferrerAlreadySet: 'You already have an inviter.',
-        VoucherExpired: 'That reward voucher expired. Try again.',
-        InvalidSignature: 'The reward voucher was rejected. Try again shortly.',
-        NothingToClaim: 'Nothing new to claim yet.',
-        DailyBudgetExceeded: 'Today’s reward budget is used up. Try again tomorrow.',
-        InsufficientPool: 'The reward pool is being refilled. Try again soon.',
+        NotVerified: 'Do the quick face check in the GoodDollar app first.',
+        AlreadyClaimedToday: 'You already opened today’s gift. Come back tomorrow!',
+        InvalidReferrer: 'That invite link doesn’t work.',
+        ReferrerAlreadySet: 'You already accepted an invite.',
+        VoucherExpired: 'That took too long. Please try again.',
+        InvalidSignature: 'Something went wrong. Please try again.',
+        NothingToClaim: 'Nothing new to collect yet.',
+        DailyBudgetExceeded: 'All of today’s prizes are gone. Try again tomorrow!',
+        InsufficientPool: 'The prize pot is being refilled. Try again soon.',
         ItemUnavailable: 'That item is not for sale right now.',
         AlreadyOwned: 'You already own this item.',
-        EnforcedPause: 'GoodTap is paused for maintenance.',
+        EnforcedPause: 'Xurri is taking a short break. Try again soon.',
       };
       const name = revert.data?.errorName;
       if (name && messages[name]) return messages[name];
     }
-    if (/insufficient funds/i.test(error.message)) return 'Your wallet needs a little CELO to pay for gas.';
+    if (/insufficient funds/i.test(error.message)) return 'Your wallet needs a little CELO to pay the network fee.';
     return error.shortMessage;
   }
   return error instanceof Error ? error.message : 'Something went wrong.';
@@ -124,7 +124,7 @@ async function sendTx(account: Address, request: (wallet: ReturnType<typeof crea
   const wallet = createWalletClient({ account, chain: chainConfig.chain, transport: custom(provider) });
   const hash = await request(wallet);
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  if (receipt.status !== 'success') throw new Error('Transaction failed on-chain');
+  if (receipt.status !== 'success') throw new Error('That didn’t go through. Please try again.');
   return receipt;
 }
 
@@ -164,7 +164,7 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
 
   connect: async () => {
     const provider = getProvider();
-    if (!provider) throw new Error('No wallet found. Open GoodTap in MiniPay, Valora or a browser with MetaMask.');
+    if (!provider) throw new Error('No wallet found. Open Xurri inside MiniPay or another wallet app.');
     set({ status: 'connecting' });
     try {
       const [raw] = (await provider.request({ method: 'eth_requestAccounts' })) as string[];
@@ -253,7 +253,7 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
     const { account, chainState } = get();
     const arcade = chainConfig.arcadeAddress;
     if (!account || !arcade) return null;
-    set({ busy: 'Claiming daily G$' });
+    set({ busy: 'Opening your daily gift' });
     try {
       await sendTx(account, async (wallet) => {
         const { request } = await publicClient.simulateContract({ account, address: arcade, abi: arcadeAbi, functionName: 'claimDaily' });
@@ -270,7 +270,7 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
     const { account } = get();
     const arcade = chainConfig.arcadeAddress;
     if (!account || !arcade) return null;
-    set({ busy: 'Collecting game rewards' });
+    set({ busy: 'Collecting your prizes' });
     try {
       const voucher = await api.voucher();
       const before = get().chainState?.rewardsClaimed ?? 0;
@@ -306,7 +306,7 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
         args: [account, arcade],
       });
       if (allowance < price) {
-        set({ busy: `Approving ${item.price} G$` });
+        set({ busy: 'Getting ready to buy' });
         await sendTx(account, (wallet) =>
           wallet.writeContract({
             account,
@@ -340,7 +340,7 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
     const { account } = get();
     const arcade = chainConfig.arcadeAddress;
     if (!account || !arcade) return false;
-    set({ busy: 'Saving your inviter' });
+    set({ busy: 'Accepting invite' });
     try {
       await sendTx(account, async (wallet) => {
         const { request } = await publicClient.simulateContract({

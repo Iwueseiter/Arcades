@@ -1,6 +1,7 @@
 'use client';
 
-import { Volume2, VolumeX, Zap } from 'lucide-react';
+import { Volume2, VolumeX } from 'lucide-react';
+import { Logo } from '@/components/brand/Logo';
 import { useBalance } from '@/lib/use-economy';
 import { formatG } from '@/lib/format';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -11,14 +12,7 @@ export function TopBar({ onOpenProfile }: { onOpenProfile: () => void }) {
 
   return (
     <header className="topbar">
-      <div className="logo">
-        <span className="logo-mark" aria-hidden>
-          <Zap size={18} fill="white" strokeWidth={0} />
-        </span>
-        <span>
-          Good<em>Tap</em>
-        </span>
-      </div>
+      <Logo size={36} />
 
       <button type="button" className="chip" onClick={onOpenProfile} aria-label="G$ balance">
         <span className="chip-coin">G$</span>

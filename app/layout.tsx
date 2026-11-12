@@ -16,13 +16,13 @@ const body = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: 'GoodTap — tap, streak, earn G$',
-  description: 'A neon arcade tap game on Celo. Build combos, climb the weekly board and earn GoodDollar rewards.',
+  title: 'Xurri: pop treats, win G$',
+  description: 'A bright, sweet tap game. Pop treats, build streaks and win G$.',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'GoodTap',
+    title: 'Xurri',
   },
 };
 
@@ -30,7 +30,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#0c0a22',
+  themeColor: '#fff4e4',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

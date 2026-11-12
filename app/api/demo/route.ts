@@ -10,7 +10,7 @@ const DAILY_REWARD = 1;
 const STREAK_BONUS = 0.2;
 const MAX_BONUS_DAYS = 7;
 
-/** Off-chain stand-in for GoodTapArcade, used until a contract address is configured. */
+/** Off-chain stand-in for XurriArcade, used until a contract address is configured. */
 export async function POST(request: Request) {
   if (onChainMode) return NextResponse.json({ error: 'Demo economy is disabled' }, { status: 400 });
 

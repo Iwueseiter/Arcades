@@ -17,6 +17,7 @@ export const SOUND_EVENTS = [
   'countdown',
   'go',
   'mission-complete',
+  'callout',
   'rank-up',
   'shop-purchase',
   'equip-item',
@@ -206,6 +207,14 @@ export function playSound(eventName: SoundEventName, intensity = 1) {
     case 'go':
       tone(m, { frequency: 1320, duration: 0.35, type: 'square', gain: 0.09, filter: { type: 'lowpass', frequency: 3500 } });
       break;
+    case 'callout': {
+      // a sparkly rising jingle; better words climb higher and add a shimmer
+      const notes = [659.25, 783.99, 987.77, 1174.66, 1318.51, 1567.98, 1975.53].slice(0, 2 + Math.round(lift));
+      notes.forEach((f, i) => tone(m, { frequency: f, duration: 0.18, type: 'triangle', gain: 0.11, at: t + i * 0.055 }));
+      tone(m, { frequency: notes[notes.length - 1] * 2, duration: 0.4, type: 'sine', gain: 0.06, at: t + notes.length * 0.055 });
+      if (intensity >= 3) noiseHit(m, { duration: 0.5, gain: 0.05, filter: 'highpass', frequency: 7000, at: t + 0.1 });
+      break;
+    }
     case 'rank-up':
     case 'shop-purchase':
       tone(m, { frequency: 1046.5, duration: 0.15, type: 'triangle', gain: 0.13 });

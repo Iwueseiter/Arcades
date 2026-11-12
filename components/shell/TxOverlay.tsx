@@ -6,7 +6,7 @@ import { useWalletStore } from '@/lib/chain/wallet-store';
 export function TxOverlay() {
   const busy = useWalletStore((s) => s.busy);
   const status = useWalletStore((s) => s.status);
-  const label = busy ?? (status === 'signing' ? 'Sign the message in your wallet' : status === 'connecting' ? 'Connecting wallet' : null);
+  const label = busy ?? (status === 'signing' ? 'Check your wallet' : status === 'connecting' ? 'Connecting wallet' : null);
 
   return (
     <AnimatePresence>
@@ -16,7 +16,7 @@ export function TxOverlay() {
             <div className="spinner" style={{ width: 34, height: 34, margin: '0 auto 14px', color: 'var(--violet)' }} />
             <p className="title-md">{label}</p>
             <p className="copy" style={{ marginTop: 6 }}>
-              {busy ? 'Confirm in your wallet, then hang tight while Celo confirms it (usually a few seconds).' : 'No gas needed for this step.'}
+              {busy ? 'Tap confirm in your wallet. This takes a few seconds.' : 'This step is free.'}
             </p>
           </motion.div>
         </motion.div>

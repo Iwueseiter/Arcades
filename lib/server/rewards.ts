@@ -12,18 +12,18 @@ const envNumber = (name: string, fallback: number) => {
 
 /** G$ (in thousandths) a ranked round pays for a given score. */
 export function roundRewardMilli(score: number) {
-  const per100 = envNumber('GOODTAP_REWARD_PER_100_POINTS', 0.05);
-  const cap = envNumber('GOODTAP_MAX_REWARD_PER_ROUND', 1);
+  const per100 = envNumber('XURRI_REWARD_PER_100_POINTS', 0.05);
+  const cap = envNumber('XURRI_MAX_REWARD_PER_ROUND', 1);
   return Math.round(Math.min(Math.floor(score / 100) * per100, cap) * 1000);
 }
 
 function getSigner() {
-  const key = process.env.GOODTAP_SIGNER_PRIVATE_KEY;
-  if (!key) throw new Error('GOODTAP_SIGNER_PRIVATE_KEY is not configured');
+  const key = process.env.XURRI_SIGNER_PRIVATE_KEY;
+  if (!key) throw new Error('XURRI_SIGNER_PRIVATE_KEY is not configured');
   return privateKeyToAccount(key as Hex);
 }
 
-/** Signs an EIP-712 voucher for the player's cumulative earnings, redeemable via GoodTapArcade.claimRewards. */
+/** Signs an EIP-712 voucher for the player's cumulative earnings, redeemable via XurriArcade.claimRewards. */
 export async function signRewardVoucher(player: string, earnedMilli: number) {
   if (!chainConfig.arcadeAddress) throw new Error('Arcade contract is not configured');
 
@@ -32,7 +32,7 @@ export async function signRewardVoucher(player: string, earnedMilli: number) {
 
   const signature = await getSigner().signTypedData({
     domain: {
-      name: 'GoodTapArcade',
+      name: 'XurriArcade',
       version: '1',
       chainId: chainConfig.chain.id,
       verifyingContract: chainConfig.arcadeAddress,
@@ -45,9 +45,3 @@ export async function signRewardVoucher(player: string, earnedMilli: number) {
   return { cumulativeAmount: cumulativeAmount.toString(), deadline: deadline.toString(), signature };
 }
 
-/** G$ (in thousandths) a daily Jelly Merge run pays for a given score. */
-export function mergeRewardMilli(score: number) {
-  const per1000 = envNumber('GOODTAP_MERGE_REWARD_PER_1000', 0.1);
-  const cap = envNumber('GOODTAP_MAX_REWARD_PER_ROUND', 1);
-  return Math.round(Math.min(Math.floor(score / 1000) * per1000, cap) * 1000);
-}

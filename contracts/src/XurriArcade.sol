@@ -15,8 +15,8 @@ interface IIdentity {
     function isWhitelisted(address account) external view returns (bool);
 }
 
-/// @title GoodTapArcade
-/// @notice On-chain reward layer for the GoodTap arcade game on Celo, paid in GoodDollar (G$).
+/// @title XurriArcade
+/// @notice On-chain reward layer for the Xurri arcade game on Celo, paid in GoodDollar (G$).
 ///
 ///  - Daily check-in: one claim per UTC day, with a capped streak bonus and a one-time referral bonus.
 ///  - Game rewards: the backend validates rounds off-chain and signs an EIP-712 voucher for the
@@ -26,7 +26,7 @@ interface IIdentity {
 ///
 ///  The contract only pays out of its own G$ balance (the "pool"), which anyone can top up by
 ///  transferring G$ to it. A global daily voucher budget limits the damage of a leaked signer key.
-contract GoodTapArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
+contract XurriArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     using SafeERC20 for IERC20;
 
     // ---------------------------------------------------------------------------------------------
@@ -113,7 +113,7 @@ contract GoodTapArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
         uint32 maxStreakBonusDays_,
         uint256 referralBonus_,
         uint256 dailyVoucherBudget_
-    ) Ownable(owner_) EIP712("GoodTapArcade", "1") {
+    ) Ownable(owner_) EIP712("XurriArcade", "1") {
         if (address(token_) == address(0) || signer_ == address(0)) revert ZeroAddress();
         token = token_;
         identity = identity_;
@@ -168,7 +168,7 @@ contract GoodTapArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
         }
     }
 
-    /// @notice Redeem game rewards signed by the GoodTap backend.
+    /// @notice Redeem game rewards signed by the Xurri backend.
     /// @param cumulativeAmount Total G$ the player has ever earned from games, as signed by the backend.
     function claimRewards(uint256 cumulativeAmount, uint256 deadline, bytes calldata signature)
         external

@@ -1,8 +1,5 @@
 import type {
   LeaderboardResponse,
-  MergeFinishResponse,
-  MergeStartResponse,
-  MergeToday,
   PlayerSnapshot,
   RoundFinishResponse,
   RoundStartResponse,
@@ -35,10 +32,6 @@ export const api = {
   finishRound: (roundId: string, log: TapLogEntry[]) =>
     request<RoundFinishResponse & { rejected?: string }>('/api/game/finish', { method: 'POST', body: { roundId, log } }),
   leaderboard: () => request<LeaderboardResponse>('/api/leaderboard'),
-  mergeToday: () => request<MergeToday>('/api/merge'),
-  mergeStart: () => request<MergeStartResponse>('/api/merge', { method: 'POST' }),
-  mergeFinish: (runId: string, moves: string) => request<MergeFinishResponse>('/api/merge/finish', { method: 'POST', body: { runId, moves } }),
-  mergeLeaderboard: () => request<LeaderboardResponse>('/api/merge/leaderboard'),
   voucher: () => request<VoucherResponse>('/api/rewards/voucher', { method: 'POST' }),
   demoClaim: () => request<{ amount: number; player: PlayerSnapshot }>('/api/demo', { method: 'POST', body: { action: 'claim' } }),
   demoBuy: (slug: string) => request<{ player: PlayerSnapshot }>('/api/demo', { method: 'POST', body: { action: 'buy', slug } }),

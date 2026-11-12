@@ -7,6 +7,7 @@ import { BottomNav } from '@/components/shell/BottomNav';
 import { TopBar } from '@/components/shell/TopBar';
 import { TxOverlay } from '@/components/shell/TxOverlay';
 import { Toaster } from '@/components/ui/Toaster';
+import { Welcome, hasBeenWelcomed } from '@/components/onboarding/Welcome';
 import { PlayView } from '@/components/views/PlayView';
 import { ProfileView } from '@/components/views/ProfileView';
 import { RanksView } from '@/components/views/RanksView';
@@ -18,13 +19,20 @@ import { useWalletStore } from '@/lib/chain/wallet-store';
 
 export type TabId = 'play' | 'ranks' | 'shop' | 'rewards' | 'me';
 
-export const REFERRER_KEY = 'goodtap-referrer';
+export const REFERRER_KEY = 'xurri-referrer';
 
 export function AppShell({ initialTab, referrer }: { initialTab: TabId; referrer: string | null }) {
   const [tab, setTab] = useState<TabId>(initialTab);
   const refresh = usePlayerStore((s) => s.refresh);
   const initWallet = useWalletStore((s) => s.init);
   const inRound = useGameStore((s) => s.status !== 'idle');
+  const player = usePlayerStore((s) => s.player);
+  const [welcome, setWelcome] = useState(false);
+
+  // First visit: show the sign-in screen once, unless they already have a name or a wallet.
+  useEffect(() => {
+    if (player && !player.name && !player.address && !hasBeenWelcomed()) setWelcome(true);
+  }, [player]);
 
   useEffect(() => {
     void refresh().then(() => initWallet());
@@ -68,6 +76,7 @@ export function AppShell({ initialTab, referrer }: { initialTab: TabId; referrer
         </AnimatePresence>
         {!inRound && <BottomNav active={tab} onSelect={selectTab} />}
       </div>
+      {welcome && <Welcome onDone={() => setWelcome(false)} />}
       <TxOverlay />
       <Toaster />
       <AudioManager />

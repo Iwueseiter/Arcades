@@ -89,7 +89,7 @@ export const erc20Abi = [
   },
 ] as const;
 
-// Matches GoodTapArcade's EIP-712 domain and REWARD_TYPEHASH.
+// Matches XurriArcade's EIP-712 domain and REWARD_TYPEHASH.
 export const rewardVoucherTypes = {
   RewardVoucher: [
     { name: 'player', type: 'address' },

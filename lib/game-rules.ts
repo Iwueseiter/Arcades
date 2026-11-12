@@ -57,7 +57,7 @@ export const WORLDS: { id: WorldId; name: string; goldenChance: number; weights:
   { id: 'candy', name: 'Candy Sky', goldenChance: 0.12, weights: { coin: 3, 'jelly-drop': 2, 'jelly-cube': 2, bubble: 2, candy: 3 } },
   { id: 'bubble', name: 'Bubble Lagoon', goldenChance: 0.13, weights: { coin: 2, 'jelly-drop': 1, 'jelly-cube': 1, bubble: 6, candy: 1 } },
   { id: 'jelly', name: 'Jelly Jungle', goldenChance: 0.14, weights: { coin: 2, 'jelly-drop': 4, 'jelly-cube': 4, bubble: 1, candy: 1 } },
-  { id: 'galaxy', name: 'Golden Galaxy', goldenChance: 0.22, weights: { coin: 5, 'jelly-drop': 1, 'jelly-cube': 1, bubble: 2, candy: 2 } },
+  { id: 'galaxy', name: 'Sunset Shore', goldenChance: 0.22, weights: { coin: 5, 'jelly-drop': 1, 'jelly-cube': 1, bubble: 2, candy: 2 } },
 ];
 
 const LEVEL_THRESHOLDS = [0, 150, 350, 600, 900, 1300, 1800, 2400, 3100, 4000];
