@@ -83,6 +83,7 @@ The shop holds nothing, so it needs no funding.
    - **Transaction pooler** (port 6543): this is `DATABASE_URL`. Add `?pgbouncer=true&connection_limit=1` to the end.
    - **Session pooler** (port 5432): this is `DIRECT_URL`.
    - In both, replace `[YOUR-PASSWORD]` with your database password.
+   - Don't use the **Direct connection** string (`db.<project>.supabase.co`). It only works over IPv6, which most home networks and Vercel can't reach.
 3. Create the tables from your machine:
 
 ```bash

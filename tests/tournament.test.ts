@@ -2,7 +2,11 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { prisma } from '@/lib/prisma';
 import { lastTournament, settleDueTournaments, tournamentPrizes, weekPrizes, weekStandings } from '@/lib/server/tournament';
 
-// Needs a Postgres database: DATABASE_URL pointing at a throwaway DB (see .github/workflows/ci.yml).
+// Needs a throwaway Postgres (TEST_DATABASE_URL, default the local xurri_test database). These tests delete
+// every row, so they refuse to run against anything but localhost.
+if (!/@(localhost|127\.0\.0\.1)[:/]/.test(process.env.DATABASE_URL ?? '')) {
+  throw new Error('Refusing to run database tests against a non-local database');
+}
 const PAST_WEEK = '2026-W40';
 const NOW = new Date('2026-11-12T12:00:00Z');
 
