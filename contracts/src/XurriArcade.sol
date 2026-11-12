@@ -8,7 +8,7 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /// @notice Minimal view of the GoodDollar Identity contract (face-verified, sybil-resistant accounts).
 /// `getWhitelistedRoot` returns the verified account an address belongs to (itself, or the root it is
@@ -195,7 +195,10 @@ contract XurriArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
 
         bytes32 digest =
             _hashTypedDataV4(keccak256(abi.encode(REWARD_TYPEHASH, msg.sender, cumulativeAmount, deadline)));
-        if (!SignatureChecker.isValidSignatureNow(signer, digest, signature)) revert InvalidSignature();
+        // The signer is always a plain key held by the Xurri server, so check the ECDSA signature directly.
+        // (A smart-wallet check would break if that address ever gained code, e.g. an EIP-7702 delegation.)
+        (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(digest, signature);
+        if (err != ECDSA.RecoverError.NoError || recovered != signer) revert InvalidSignature();
 
         uint256 alreadyClaimed = rewardsClaimed[msg.sender];
         if (cumulativeAmount <= alreadyClaimed) revert NothingToClaim();
