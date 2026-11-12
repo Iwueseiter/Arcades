@@ -9,7 +9,7 @@ const tsconfigRootDir = fileURLToPath(new URL('.', import.meta.url));
 
 export default [
   {
-    ignores: ['.next/**', 'node_modules/**', 'eslint.config.mjs', 'next.config.mjs', 'postcss.config.js', '**/*.config.*'],
+    ignores: ['.next/**', 'node_modules/**', 'contracts/**', 'eslint.config.mjs', 'next.config.mjs', 'postcss.config.js', '**/*.config.*'],
   },
   js.configs.recommended,
   {

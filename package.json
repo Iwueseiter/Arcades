@@ -3,11 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "NODE_OPTIONS=--experimental-require-module next dev",
+    "build": "NODE_OPTIONS=--experimental-require-module next build",
+    "start": "NODE_OPTIONS=--experimental-require-module next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:push": "prisma db push",
+    "contracts:install": "cd contracts && forge install --no-git OpenZeppelin/openzeppelin-contracts@v5.4.0 foundry-rs/forge-std@v1.17.0",
+    "contracts:test": "cd contracts && forge test"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -26,8 +29,8 @@
     "@eslint/js": "^9.39.5",
     "@next/eslint-plugin-next": "^16.4.5",
     "@tailwindcss/postcss": "^4.3.4",
-    "@types/node": "^22.7.4",
-    "@types/react": "^19.1.0",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
     "@types/react-dom": "^19.1.0",
     "@typescript-eslint/eslint-plugin": "^8.72.1",
     "@typescript-eslint/parser": "^8.72.1",
@@ -37,6 +40,9 @@
     "globals": "^17.14.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^4.3.4",
-    "typescript": "^5.6.2"
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12"
   }
 }
