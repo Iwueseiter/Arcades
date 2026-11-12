@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { api } from '@/lib/api';
 import { avatarColor, formatDuration, formatG, initials } from '@/lib/format';
 import type { LeaderboardResponse, LeaderboardRow } from '@/lib/types';
+import { tournamentsEnabled } from '@/lib/chain/config';
 
 const PODIUM = [
   { place: 2, height: 92, color: '#8aa0b8', bg: '#dfe6ef' },
@@ -71,7 +72,7 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
       <div className="card card-hero">
         <div className="row">
           <div>
-            <p className="eyebrow">Weekly tournament</p>
+            <p className="eyebrow">{tournamentsEnabled ? 'Weekly tournament' : 'This week'}</p>
             <h1 className="title-xl">Top poppers</h1>
             {data && data.prizes.length > 0 && (
               <p className="copy" style={{ marginTop: 4, fontSize: '0.85rem' }}>
@@ -125,7 +126,7 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
         )}
       </div>
 
-      {data && <PotCard total={data.pot.total} boosted={data.pot.boosted} onBoosted={load} />}
+      {data && tournamentsEnabled && <PotCard total={data.pot.total} boosted={data.pot.boosted} onBoosted={load} />}
 
       {loading && !data && (
         <div style={{ display: 'grid', gap: 8 }}>
@@ -143,7 +144,7 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
         <div className="card" style={{ textAlign: 'center' }}>
           <p className="title-md">No scores yet this week</p>
           <p className="copy" style={{ margin: '6px 0 14px' }}>
-            Play a tournament game and take the top spot.
+            Play a game and take the top spot.
           </p>
           <button type="button" className="btn btn-primary btn-block" onClick={() => onNavigate('play')}>
             Play now

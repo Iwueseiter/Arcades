@@ -6,7 +6,7 @@ import { Check, Crown, Gem, Package, Zap } from 'lucide-react';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { api } from '@/lib/api';
 import { playSound } from '@/lib/audioManager';
-import { onChainMode } from '@/lib/chain/config';
+import { onChainMode, tournamentsEnabled } from '@/lib/chain/config';
 import { describeError, useWalletStore } from '@/lib/chain/wallet-store';
 import { formatG } from '@/lib/format';
 import { usePlayerStore } from '@/lib/player-store';
@@ -61,7 +61,7 @@ export function ShopView() {
         </div>
         <p className="copy" style={{ marginTop: 8 }}>
           {onChainMode
-            ? 'Your items are saved to your wallet. 90% of what you spend goes to the tournament prize pot, and 10% to GoodDollar’s UBI pool.'
+            ? `Your items are saved to your wallet. 10% of what you spend goes to GoodDollar’s UBI pool${tournamentsEnabled ? ', and the rest to the tournament prize pot' : ''}.`
             : 'Test mode: you’re spending play money for now.'}
         </p>
         {needsWallet && (

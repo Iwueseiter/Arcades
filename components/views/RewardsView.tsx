@@ -7,7 +7,7 @@ import type { TabId } from '@/components/shell/AppShell';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { api } from '@/lib/api';
 import { playSound } from '@/lib/audioManager';
-import { onChainMode } from '@/lib/chain/config';
+import { onChainMode, tournamentsEnabled } from '@/lib/chain/config';
 import { describeError, useWalletStore } from '@/lib/chain/wallet-store';
 import { formatG } from '@/lib/format';
 import { usePlayerStore } from '@/lib/player-store';
@@ -54,7 +54,7 @@ export function RewardsView({ onNavigate }: { onNavigate?: (tab: TabId) => void 
   const streak = onChainMode ? chainState?.streak ?? 0 : demo?.streak ?? 0;
   const claimedToday = onChainMode ? Boolean(chainState && !chainState.canClaimDaily && chainState.verified) : Boolean(demo?.claimedToday);
   const dailyAmount = onChainMode
-    ? chainState?.dailyAmount ?? 0
+    ? chainState?.dailyAmount || DEMO_DAILY
     : DEMO_DAILY + DEMO_STREAK_BONUS * Math.min(claimedToday ? streak - 1 : streak, 7);
   const needsVerification = onChainMode && account && chainState && !chainState.verified;
   const onClaimDaily = async () => {
@@ -115,7 +115,7 @@ export function RewardsView({ onNavigate }: { onNavigate?: (tab: TabId) => void 
             <div className="notice warn">
               <ShieldCheck size={18} />
               <div>
-                Prizes are for real people. Do a quick face check in the GoodDollar app, then come back.
+                The daily gift is for real people. Do a quick face check in the GoodDollar app, then come back.
                 <a href={GOODDOLLAR_VERIFY_URL} target="_blank" rel="noreferrer" className="btn btn-gold btn-sm btn-block" style={{ marginTop: 10 }}>
                   Do the face check <ExternalLink size={15} />
                 </a>
@@ -129,33 +129,35 @@ export function RewardsView({ onNavigate }: { onNavigate?: (tab: TabId) => void 
         </div>
       </div>
 
-      <div className="card">
-        <div className="row">
-          <div>
-            <p className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Trophy size={12} /> Weekly tournament
-            </p>
-            <p className="title-md num" style={{ marginTop: 4 }}>
-              {onChainMode ? `${formatG(pendingGame, 3)} G$ won, ready to collect` : 'Prizes go straight to your balance'}
-            </p>
+      {tournamentsEnabled && (
+        <div className="card">
+          <div className="row">
+            <div>
+              <p className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Trophy size={12} /> Weekly tournament
+              </p>
+              <p className="title-md num" style={{ marginTop: 4 }}>
+                {onChainMode ? `${formatG(pendingGame, 3)} G$ won, ready to collect` : 'Prizes go straight to your balance'}
+              </p>
+            </div>
+            {onChainMode && account && (
+              <button type="button" className="btn btn-primary btn-sm" onClick={onCollect} disabled={pendingGame <= 0}>
+                Collect
+              </button>
+            )}
           </div>
-          {onChainMode && account && (
-            <button type="button" className="btn btn-primary btn-sm" onClick={onCollect} disabled={pendingGame <= 0}>
-              Collect
+          <p className="copy" style={{ marginTop: 8, fontSize: '0.84rem' }}>
+            The best scores of the week win G$. The board closes Monday, and prizes arrive a day later, once we’ve checked
+            the scores are fair.
+            {onChainMode && player && player.earned > 0 ? ` Won so far: ${formatG(player.earned, 3)} G$.` : ''}
+          </p>
+          {onNavigate && (
+            <button type="button" className="btn btn-ghost btn-sm btn-block" style={{ marginTop: 12 }} onClick={() => onNavigate('ranks')}>
+              See this week’s prizes
             </button>
           )}
         </div>
-        <p className="copy" style={{ marginTop: 8, fontSize: '0.84rem' }}>
-          The best scores of the week win G$. The board closes Monday, and prizes arrive a day later, once we’ve checked
-          the scores are fair.
-          {onChainMode && player && player.earned > 0 ? ` Won so far: ${formatG(player.earned, 3)} G$.` : ''}
-        </p>
-        {onNavigate && (
-          <button type="button" className="btn btn-ghost btn-sm btn-block" style={{ marginTop: 12 }} onClick={() => onNavigate('ranks')}>
-            See this week’s prizes
-          </button>
-        )}
-      </div>
+      )}
     </>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { chainConfig } from '@/lib/chain/config';
+import { chainConfig, tournamentsEnabled } from '@/lib/chain/config';
 import { getStats } from '@/lib/server/stats';
 
 export const metadata: Metadata = { title: 'Stats · Xurri' };
@@ -25,8 +25,8 @@ export default async function StatsPage() {
   const { chain } = stats;
   const contracts = [
     ['Daily gift', chainConfig.giftAddress],
-    ['Tournaments & prize pot', chainConfig.tournamentsAddress],
     ['Shop', chainConfig.shopAddress],
+    ...(tournamentsEnabled ? ([['Tournaments & prize pot', chainConfig.tournamentsAddress]] as const) : []),
   ] as const;
 
   return (
@@ -47,26 +47,34 @@ export default async function StatsPage() {
         />
         <Stat label="Verified people" value={n(stats.verifiedPeople)} hint="GoodDollar face check" />
         <Stat label="Players ever" value={n(stats.players)} />
+        <Stat label="Games this week" value={n(stats.gamesThisWeek)} />
       </div>
 
       <h2>G$ on Celo</h2>
       <div className="stats-grid">
         <Stat label="Daily gifts claimed" value={n(chain?.giftClaims)} hint={g(chain?.giftPaid)} />
-        <Stat label="Tournament games" value={n(chain?.tournamentGames)} />
-        <Stat label="Prizes paid" value={g(chain?.prizesPaid)} />
-        <Stat label="In the prize pot" value={g(chain?.potBalance)} />
-        <Stat label="Added to pots" value={g(chain?.potBoosted)} hint="by players and sponsors" />
+        {tournamentsEnabled && (
+          <>
+            <Stat label="Tournament games" value={n(chain?.tournamentGames)} />
+            <Stat label="Prizes paid" value={g(chain?.prizesPaid)} />
+            <Stat label="In the prize pot" value={g(chain?.potBalance)} />
+            <Stat label="Added to pots" value={g(chain?.potBoosted)} hint="by players and sponsors" />
+          </>
+        )}
         <Stat label="Spent in the shop" value={g(chain?.shopSpent)} hint={chain?.shopSales === 1 ? '1 item' : `${n(chain?.shopSales)} items`} />
         <Stat label="Sent to GoodDollar UBI" value={g(chain?.toUbi)} />
       </div>
 
-      <h2>Tournaments</h2>
-      <div className="stats-grid">
-        <Stat label="Weeks finished" value={n(stats.tournamentsFinished)} />
-        <Stat label="Different winners" value={n(stats.tournamentWinners)} />
-        <Stat label="Prizes awarded" value={g(stats.prizesAwarded)} />
-        <Stat label="Games this week" value={n(stats.gamesThisWeek)} />
-      </div>
+      {tournamentsEnabled && (
+        <>
+          <h2>Tournaments</h2>
+          <div className="stats-grid">
+            <Stat label="Weeks finished" value={n(stats.tournamentsFinished)} />
+            <Stat label="Different winners" value={n(stats.tournamentWinners)} />
+            <Stat label="Prizes awarded" value={g(stats.prizesAwarded)} />
+          </div>
+        </>
+      )}
 
       <h2>Contracts</h2>
       <ul>

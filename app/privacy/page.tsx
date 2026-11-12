@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       <ul>
         <li>Your wallet address, if you connect one.</li>
         <li>The name you pick and, only if you give it, your email.</li>
-        <li>Your game results: scores, when you played, and tournament places and prizes.</li>
+        <li>Your game results: scores, when you played, and leaderboard places.</li>
         <li>A cookie that keeps you signed in. We don’t use advertising or tracking cookies.</li>
       </ul>
 
@@ -25,13 +25,13 @@ export default function PrivacyPage() {
 
       <h2>Public by design</h2>
       <p>
-        Anything done on Celo, such as claims, tournament game starts and prize collections, is public on the
+        Anything done on Celo, such as daily claims and shop purchases, is public on the
         blockchain, linked to your wallet address. Your name and weekly score appear on the leaderboard.
       </p>
 
       <h2>How we use it</h2>
       <p>
-        To run the game, rank the tournament, catch cheating and pay prizes. We don’t sell your data or share it with
+        To run the game, rank the weekly board, catch cheating and pay out daily gifts. We don’t sell your data or share it with
         advertisers. Our hosting and database providers process it for us.
       </p>
 

@@ -30,3 +30,9 @@ export const chainConfig = {
 };
 
 export const onChainMode = chainConfig.tournamentsAddress !== null;
+
+/**
+ * Weekly G$ tournaments (tournament games, prize pot, prizes). Off until NEXT_PUBLIC_TOURNAMENTS=on:
+ * then every game is free, needs no wallet transaction, and the weekly board is just for fun.
+ */
+export const tournamentsEnabled = process.env.NEXT_PUBLIC_TOURNAMENTS === 'on';

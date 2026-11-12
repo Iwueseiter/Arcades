@@ -21,7 +21,7 @@ import {
   swayX,
   worldForLevel,
 } from '@/lib/game-rules';
-import { onChainMode } from '@/lib/chain/config';
+import { onChainMode, tournamentsEnabled } from '@/lib/chain/config';
 import { describeError, useWalletStore } from '@/lib/chain/wallet-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { useProgressStore, type Mission } from '@/lib/progress-store';
@@ -237,7 +237,7 @@ export const useGameStore = create<GameState & GameActions>()(
 
           try {
             const wallet = useWalletStore.getState();
-            const txHash = mode === 'prize' && onChainMode && wallet.account ? await wallet.startGameTx() : undefined;
+            const txHash = tournamentsEnabled && mode === 'prize' && onChainMode && wallet.account ? await wallet.startGameTx() : undefined;
             const round = await api.startRound(txHash);
             usePlayerStore.getState().setPlayer(round.player);
             set({ ...roundDefaults, collected: {}, roundId: round.roundId, seed: round.seed, ranked: round.ranked, status: 'countdown', countdown: 3 });

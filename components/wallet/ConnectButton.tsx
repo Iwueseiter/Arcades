@@ -12,7 +12,7 @@ export function ConnectButton({ block = false, label = 'Connect wallet' }: { blo
   const onClick = async () => {
     try {
       await connect();
-      toast.success('Wallet connected', 'Claim your daily G$ and join the weekly tournament.');
+      toast.success('Wallet connected', 'You can now claim your free daily G$.');
     } catch (error) {
       toast.error('Couldn’t connect', describeError(error));
     }

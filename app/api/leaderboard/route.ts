@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { tournamentsEnabled } from '@/lib/chain/config';
 import { getWeekKey, msUntilWeekReset } from '@/lib/game-rules';
 import { findSessionPlayer } from '@/lib/server/session';
 import { lastTournament, settleDueTournaments, weekPrizes, weekStandings } from '@/lib/server/tournament';
@@ -10,7 +11,7 @@ let lastSettleCheck = 0;
 
 export async function GET() {
   // The cron job settles tournaments too; this just makes sure prizes go out even without it.
-  if (Date.now() - lastSettleCheck > SETTLE_CHECK_MS) {
+  if (tournamentsEnabled && Date.now() - lastSettleCheck > SETTLE_CHECK_MS) {
     lastSettleCheck = Date.now();
     await settleDueTournaments().catch((error) => console.error('[tournament] settle failed', error));
   }
@@ -19,8 +20,8 @@ export async function GET() {
   const [me, standings, last, pot] = await Promise.all([
     findSessionPlayer(),
     weekStandings(weekKey),
-    lastTournament(),
-    weekPrizes(weekKey).catch(() => null),
+    tournamentsEnabled ? lastTournament() : null,
+    tournamentsEnabled ? weekPrizes(weekKey).catch(() => null) : null,
   ]);
 
   const toRow = (row: (typeof standings)[number]) => ({

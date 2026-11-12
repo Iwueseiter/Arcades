@@ -12,6 +12,7 @@ import { ARENA_WIDTH, STARTING_LIVES, levelStartsAt, nextLevelAt, swayX, worldFo
 import { useGameStore, type Pop } from '@/lib/game-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { toast } from '@/lib/toast-store';
+import { tournamentsEnabled } from '@/lib/chain/config';
 
 const pct = (value: number, of: number) => `${(value / of) * 100}%`;
 
@@ -394,7 +395,7 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
                 <div className="result-mascot">
                   <Mascot mood={game.mascot.mood} line={game.mascot.line} at={game.mascot.at} size={96} side="right" />
                 </div>
-                <p className="eyebrow">{result.ranked ? 'Tournament game' : 'Practice'}</p>
+                <p className="eyebrow">{!tournamentsEnabled ? 'Your score' : result.ranked ? 'Tournament game' : 'Practice'}</p>
                 <div className="title-xl num" style={{ fontSize: '3.4rem' }}>
                   {result.score.toLocaleString()}
                 </div>
@@ -422,7 +423,7 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
                   </div>
                 )}
                 <button type="button" className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={begin}>
-                  <Play size={18} fill="currentColor" /> {roundsLeft > 0 ? `Play again · ${roundsLeft} left` : 'Practice'}
+                  <Play size={18} fill="currentColor" /> {!tournamentsEnabled ? 'Play again' : roundsLeft > 0 ? `Play again · ${roundsLeft} left` : 'Practice'}
                 </button>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   <button type="button" className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={exit}>

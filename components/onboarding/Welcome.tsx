@@ -31,7 +31,7 @@ export function hasBeenWelcomed() {
   }
 }
 
-/** Sign-in screen: pick a name and play, or connect a wallet to claim G$ and join tournaments. */
+/** Sign-in screen: pick a name and play, or connect a wallet to claim free daily G$. */
 export function Welcome({ onDone, standalone = false }: { onDone: () => void; standalone?: boolean }) {
   const player = usePlayerStore((s) => s.player);
   const refresh = usePlayerStore((s) => s.refresh);
@@ -117,7 +117,7 @@ export function Welcome({ onDone, standalone = false }: { onDone: () => void; st
             <ConnectButton block label="Connect wallet" />
           )}
           <p className="welcome-note">
-            Connect a wallet for free daily G$ and the weekly tournament. No wallet? You can still practice. By playing you
+            Connect a wallet for free daily G$. No wallet? You can still play. By playing you
             agree to our <Link href="/terms">terms</Link> and <Link href="/privacy">privacy</Link> notes.
           </p>
         </form>

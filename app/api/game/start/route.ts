@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { createPublicClient, http, isHash, parseEventLogs, type Hash } from 'viem';
 import { tournamentsAbi } from '@/lib/chain/abi';
-import { chainConfig, onChainMode } from '@/lib/chain/config';
+import { chainConfig, onChainMode, tournamentsEnabled } from '@/lib/chain/config';
 import { MAX_ROUNDS_PER_DAY, getTodayKey } from '@/lib/game-rules';
 import { prisma } from '@/lib/prisma';
 import { roundsUsedToday, toSnapshot } from '@/lib/server/player';
@@ -33,8 +33,11 @@ export async function POST(request: Request) {
   let txHash: string | null = null;
   let root: string | null = player.identityRoot;
 
-  // On-chain, a tournament game must be started with a startGame transaction; without one it's practice.
-  if (onChainMode) {
+  if (!tournamentsEnabled) {
+    // No tournaments: every game counts for the weekly board, which has no prizes, so no limits apply.
+    ranked = true;
+  } else if (onChainMode) {
+    // On-chain, a tournament game must be started with a startGame transaction; without one it's practice.
     if (body.txHash) {
       if (!player.address || !isHash(body.txHash)) return NextResponse.json({ error: 'Connect your wallet to play in the tournament' }, { status: 400 });
       if (await prisma.gameRound.findUnique({ where: { txHash: body.txHash.toLowerCase() } })) {

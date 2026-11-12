@@ -109,7 +109,7 @@ export function ProfileView() {
         ) : (
           <>
             <p className="copy" style={{ margin: '6px 0 12px' }}>
-              Connect a wallet to claim free daily G$, join the weekly tournament and keep your items. Your progress comes with you.
+              Connect a wallet to claim free daily G$ and keep your items. Your progress comes with you.
             </p>
             <ConnectButton block />
           </>
