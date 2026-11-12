@@ -79,7 +79,7 @@ type GameState = {
 };
 
 type GameActions = {
-  /** 'prize' sends the on-chain startGame transaction first (when a contract is set up); 'free' never does. */
+  /** 'prize' is a tournament game: it sends the on-chain startGame transaction first (when a contract is set up). 'free' is practice. */
   startRound: (mode?: PlayMode) => Promise<void>;
   tick: (deltaMs: number, now: number) => void;
   tapToken: (tokenId: string) => void;
@@ -201,7 +201,7 @@ export const useGameStore = create<GameState & GameActions>()(
             result: {
               score,
               ranked: false,
-              reward: 0,
+              rank: null,
               newBest: false,
               offline: true,
               player: usePlayerStore.getState().player!,

@@ -14,8 +14,11 @@ export const chainConfig = {
   // G$ on Celo mainnet. Override for testnets.
   tokenAddress: optionalAddress(process.env.NEXT_PUBLIC_GD_TOKEN_ADDRESS) ?? getAddress('0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A'),
   tokenDecimals: 18,
-  // When no arcade contract is configured the app runs in demo mode: rewards and purchases are tracked off-chain.
-  arcadeAddress: optionalAddress(process.env.NEXT_PUBLIC_ARCADE_ADDRESS),
+  // Xurri's three contracts (see contracts/). Without the tournaments address the app runs in demo
+  // mode: gifts, prizes and purchases are tracked off-chain with play money.
+  giftAddress: optionalAddress(process.env.NEXT_PUBLIC_GIFT_ADDRESS),
+  tournamentsAddress: optionalAddress(process.env.NEXT_PUBLIC_TOURNAMENTS_ADDRESS),
+  shopAddress: optionalAddress(process.env.NEXT_PUBLIC_SHOP_ADDRESS),
   explorerUrl: chain.blockExplorers?.default.url ?? 'https://celoscan.io',
   // GoodDollar's daily UBI claim and face-check registry only exist on Celo mainnet.
   ubiAddress:
@@ -26,4 +29,4 @@ export const chainConfig = {
     (chain.id === celo.id ? getAddress('0xC361A6E67822a0EDc17D899227dd9FC50BD62F42') : null),
 };
 
-export const onChainMode = chainConfig.arcadeAddress !== null;
+export const onChainMode = chainConfig.tournamentsAddress !== null;

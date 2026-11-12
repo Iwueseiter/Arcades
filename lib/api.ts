@@ -35,4 +35,5 @@ export const api = {
   voucher: () => request<VoucherResponse>('/api/rewards/voucher', { method: 'POST' }),
   demoClaim: () => request<{ amount: number; player: PlayerSnapshot }>('/api/demo', { method: 'POST', body: { action: 'claim' } }),
   demoBuy: (slug: string) => request<{ player: PlayerSnapshot }>('/api/demo', { method: 'POST', body: { action: 'buy', slug } }),
+  demoBoost: (amount: number) => request<{ player: PlayerSnapshot }>('/api/demo', { method: 'POST', body: { action: 'boost', amount } }),
 };

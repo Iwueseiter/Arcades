@@ -12,7 +12,7 @@ export function TopBar({ onOpenProfile }: { onOpenProfile: () => void }) {
 
   return (
     <header className="topbar">
-      <Logo size={36} />
+      <Logo />
 
       <button type="button" className="chip" onClick={onOpenProfile} aria-label="G$ balance">
         <span className="chip-coin">G$</span>

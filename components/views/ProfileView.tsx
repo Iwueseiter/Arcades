@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ExternalLink, LogOut, Music, ShieldCheck, Volume2, Vibrate, Wallet } from 'lucide-react';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
@@ -108,7 +109,7 @@ export function ProfileView() {
         ) : (
           <>
             <p className="copy" style={{ margin: '6px 0 12px' }}>
-              Connect a wallet (like MiniPay) to win real G$ and keep your items. Your progress comes with you.
+              Connect a wallet to claim free daily G$, join the weekly tournament and keep your items. Your progress comes with you.
             </p>
             <ConnectButton block />
           </>
@@ -167,6 +168,8 @@ export function ProfileView() {
 
       <p className="copy" style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--faint)' }}>
         {onChainMode ? 'Prizes are paid in G$' : 'Test mode · real prizes start soon'}
+        <br />
+        <Link href="/stats">Stats</Link> · <Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link>
       </p>
     </>
   );

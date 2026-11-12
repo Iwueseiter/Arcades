@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
-import { LogoMark } from '@/components/brand/Logo';
 import { TokenArt } from '@/components/game/TokenArt';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { api } from '@/lib/api';
@@ -30,7 +30,7 @@ export function hasBeenWelcomed() {
   }
 }
 
-/** Sign-in screen: pick a name and play, or connect a wallet to win real G$. */
+/** Sign-in screen: pick a name and play, or connect a wallet to claim G$ and join tournaments. */
 export function Welcome({ onDone, standalone = false }: { onDone: () => void; standalone?: boolean }) {
   const player = usePlayerStore((s) => s.player);
   const refresh = usePlayerStore((s) => s.refresh);
@@ -81,12 +81,14 @@ export function Welcome({ onDone, standalone = false }: { onDone: () => void; st
       ))}
 
       <div className="welcome-inner">
-        <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 16 }}>
-          <LogoMark size={92} />
-        </motion.div>
-        <h1 className="welcome-title">
+        <motion.h1
+          className="welcome-title"
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 16 }}
+        >
           <em>X</em>urri
-        </h1>
+        </motion.h1>
         <p className="welcome-tag">Pop treats. Win G$.</p>
 
 
@@ -118,7 +120,10 @@ export function Welcome({ onDone, standalone = false }: { onDone: () => void; st
           ) : (
             <ConnectButton block label="Connect wallet" />
           )}
-          <p className="welcome-note">Connect a wallet to win real G$. No wallet? You can still play for fun.</p>
+          <p className="welcome-note">
+            Connect a wallet for free daily G$ and the weekly tournament. No wallet? You can still practice. By playing you
+            agree to our <Link href="/terms">terms</Link> and <Link href="/privacy">privacy</Link> notes.
+          </p>
         </form>
       </div>
     </div>

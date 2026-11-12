@@ -3,35 +3,42 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 /// A player is either a guest (identified by a signed session cookie) or a wallet that signed in.
 model Player {
-  id            String      @id @default(cuid())
-  address       String?     @unique
-  name          String      @default("")
-  email         String      @default("")
-  bestScore     Int         @default(0)
-  weekKey       String      @default("")
-  weeklyBest    Int         @default(0)
-  gamesPlayed   Int         @default(0)
-  totalScore    Int         @default(0)
-  roundsDay     String      @default("")
-  roundsUsed    Int         @default(0)
-  /// G$ earned from ranked rounds, in thousandths of a G$. Redeemed on-chain through signed vouchers.
-  earnedMilli   Int         @default(0)
+  id            String            @id @default(cuid())
+  address       String?           @unique
+  /// GoodDollar identity behind the wallet. Several wallets can share one person; tournaments count each person once.
+  identityRoot  String?
+  name          String            @default("")
+  email         String            @default("")
+  bestScore     Int               @default(0)
+  weekKey       String            @default("")
+  weeklyBest    Int               @default(0)
+  gamesPlayed   Int               @default(0)
+  totalScore    Int               @default(0)
+  roundsDay     String            @default("")
+  roundsUsed    Int               @default(0)
+  /// G$ won in tournaments, in thousandths of a G$. Redeemed on-chain through signed vouchers.
+  earnedMilli   Int               @default(0)
+  /// Banned players stay playable but are left out of tournaments and can't redeem prizes.
+  banned        Boolean           @default(false)
   /// Demo-mode economy, used when no arcade contract is configured.
-  demoBalance   Float       @default(25)
-  demoPurchases String      @default("[]")
+  demoBalance   Float             @default(25)
+  demoPurchases String            @default("[]")
   demoLastClaim String?
-  demoStreak    Int         @default(0)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  demoStreak    Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
   rounds        GameRound[]
+  prizes        TournamentPrize[]
+  boosts        PotBoost[]
 
   @@index([weekKey, weeklyBest])
+  @@index([identityRoot])
 }
 
 model GameRound {
@@ -43,11 +50,46 @@ model GameRound {
   startedAt   DateTime  @default(now())
   finishedAt  DateTime?
   score       Int?
-  rewardMilli Int       @default(0)
-  /// The on-chain startGame transaction that paid for a prize game (on-chain mode only).
+  /// Tournament week this ranked round counts for, set when it finishes.
+  weekKey     String?
+  /// Set when the tap log looks automated. Flagged rounds don't count in tournaments.
+  flagged     String?
+  /// The on-chain startGame transaction that paid for a tournament game (on-chain mode only).
   txHash      String?   @unique
 
   @@index([playerId, startedAt])
+  @@index([weekKey, score])
 }
 
+/// A finished weekly tournament. Its row is created once, when prizes are handed out.
+model Tournament {
+  weekKey   String            @id
+  settledAt DateTime          @default(now())
+  prizes    TournamentPrize[]
+}
 
+model TournamentPrize {
+  id          String     @id @default(cuid())
+  weekKey     String
+  tournament  Tournament @relation(fields: [weekKey], references: [weekKey], onDelete: Cascade)
+  playerId    String
+  player      Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  rank        Int
+  score       Int
+  amountMilli Int
+
+  @@unique([weekKey, rank])
+  @@index([playerId])
+}
+
+/// Demo-mode stand-in for XurriTournaments.boost: play money added to a week's prize pot.
+model PotBoost {
+  id          String   @id @default(cuid())
+  weekKey     String
+  playerId    String
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  amountMilli Int
+  createdAt   DateTime @default(now())
+
+  @@index([weekKey])
+}

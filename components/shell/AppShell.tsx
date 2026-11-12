@@ -19,9 +19,7 @@ import { useWalletStore } from '@/lib/chain/wallet-store';
 
 export type TabId = 'play' | 'ranks' | 'shop' | 'rewards' | 'me';
 
-export const REFERRER_KEY = 'xurri-referrer';
-
-export function AppShell({ initialTab, referrer }: { initialTab: TabId; referrer: string | null }) {
+export function AppShell({ initialTab }: { initialTab: TabId }) {
   const [tab, setTab] = useState<TabId>(initialTab);
   const refresh = usePlayerStore((s) => s.refresh);
   const initWallet = useWalletStore((s) => s.init);
@@ -37,15 +35,6 @@ export function AppShell({ initialTab, referrer }: { initialTab: TabId; referrer
   useEffect(() => {
     void refresh().then(() => initWallet());
   }, [refresh, initWallet]);
-
-  useEffect(() => {
-    if (!referrer) return;
-    try {
-      localStorage.setItem(REFERRER_KEY, referrer);
-    } catch {
-      // storage can be unavailable in private mode; the invite just won't be remembered
-    }
-  }, [referrer]);
 
   const selectTab = (next: TabId) => {
     setTab(next);
@@ -70,7 +59,7 @@ export function AppShell({ initialTab, referrer }: { initialTab: TabId; referrer
             {tab === 'play' && <PlayView onNavigate={selectTab} />}
             {tab === 'ranks' && <RanksView onNavigate={selectTab} />}
             {tab === 'shop' && <ShopView />}
-            {tab === 'rewards' && <RewardsView />}
+            {tab === 'rewards' && <RewardsView onNavigate={selectTab} />}
             {tab === 'me' && <ProfileView />}
           </motion.section>
         </AnimatePresence>

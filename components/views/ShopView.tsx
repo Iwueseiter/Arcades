@@ -61,7 +61,7 @@ export function ShopView() {
         </div>
         <p className="copy" style={{ marginTop: 8 }}>
           {onChainMode
-            ? 'Your items are saved to your wallet. What you spend goes back into the prize pot.'
+            ? 'Your items are saved to your wallet. 90% of what you spend goes to the tournament prize pot, and 10% to GoodDollar’s UBI pool.'
             : 'Test mode: you’re spending play money for now.'}
         </p>
         {needsWallet && (

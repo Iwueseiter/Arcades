@@ -46,19 +46,20 @@ export async function setSessionPlayer(playerId: string) {
   (await cookies()).set(SESSION_COOKIE, seal(playerId), cookieOptions(SESSION_MAX_AGE));
 }
 
-/** Returns the session's player, creating a guest player (and cookie) on first visit. */
+/** Returns the session's player, or null for a visitor who hasn't done anything worth saving yet. */
+export async function findSessionPlayer(): Promise<Player | null> {
+  const playerId = unseal((await cookies()).get(SESSION_COOKIE)?.value);
+  return playerId ? prisma.player.findUnique({ where: { id: playerId } }) : null;
+}
+
+/**
+ * Returns the session's player, creating a guest player (and cookie) if there isn't one. Only call
+ * this when the visitor saves something, so page views and bots don't fill the database.
+ */
 export async function getSessionPlayer(): Promise<Player> {
-  const store = await cookies();
-  const playerId = unseal(store.get(SESSION_COOKIE)?.value);
-
-  if (playerId) {
-    const player = await prisma.player.findUnique({ where: { id: playerId } });
-    if (player) return player;
-  }
-
-  const player = await prisma.player.create({ data: {} });
-  await setSessionPlayer(player.id);
-  return player;
+  const existing = await findSessionPlayer();
+  if (existing) return existing;
+  return startGuestSession();
 }
 
 export async function startGuestSession() {
