@@ -15,12 +15,12 @@ fail() { echo "✗ $1"; exit 1; }
 [[ "${VOUCHER_SIGNER:-}" =~ ^0x[0-9a-fA-F]{40}$ ]] || fail "VOUCHER_SIGNER in contracts/.env isn't set"
 
 DEPLOYER=$(cast wallet address "$PRIVATE_KEY")
-NEED_WEI=4000000000000000000 # 4 CELO; about half is actually used, the rest stays in the wallet
+NEED_WEI=2000000000000000000 # 2 CELO; a deploy uses about 1, the rest stays in the wallet
 BALANCE=$(cast balance "$DEPLOYER" --rpc-url "$RPC")
 echo "Deploy wallet: $DEPLOYER ($(cast from-wei "$BALANCE") CELO)"
 echo "Admin wallet:  $ADMIN"
 if [[ $(echo "$BALANCE < $NEED_WEI" | bc) -eq 1 ]]; then
-  fail "Send at least 4 CELO to $DEPLOYER on Celo mainnet, then run this again."
+  fail "Send at least 2 CELO to $DEPLOYER on Celo mainnet, then run this again."
 fi
 
 ARGS=(script script/Deploy.s.sol --rpc-url "$RPC" --broadcast)
