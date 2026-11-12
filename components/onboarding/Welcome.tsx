@@ -4,7 +4,6 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { LogoMark } from '@/components/brand/Logo';
-import { Mascot } from '@/components/game/Mascot';
 import { TokenArt } from '@/components/game/TokenArt';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { api } from '@/lib/api';
@@ -90,9 +89,6 @@ export function Welcome({ onDone, standalone = false }: { onDone: () => void; st
         </h1>
         <p className="welcome-tag">Pop treats. Win G$.</p>
 
-        <div className="welcome-mascot">
-          <Mascot mood="happy" line="Hi! I’m Bloop 👋" at={1} size={84} side="right" />
-        </div>
 
         <form className="welcome-card" onSubmit={start}>
           <label htmlFor="welcome-name" className="welcome-label">

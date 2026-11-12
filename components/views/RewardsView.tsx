@@ -14,6 +14,7 @@ import { formatG, shortAddress } from '@/lib/format';
 import { usePlayerStore } from '@/lib/player-store';
 import { toast } from '@/lib/toast-store';
 import { usePendingGameRewards } from '@/lib/use-economy';
+import { UbiClaim } from '@/components/wallet/UbiClaim';
 
 const DEMO_DAILY = 1;
 const DEMO_STREAK_BONUS = 0.2;
@@ -128,10 +129,12 @@ export function RewardsView() {
 
   return (
     <>
+      <UbiClaim />
+
       <div className="card card-gold">
         <div className="row" style={{ alignItems: 'flex-start' }}>
           <div>
-            <p className="eyebrow">Daily gift</p>
+            <p className="eyebrow">Xurri daily gift</p>
             <h1 className="title-xl">
               <span className="gold-text num">{formatG(dailyAmount)} G$</span>
             </h1>

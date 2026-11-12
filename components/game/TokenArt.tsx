@@ -84,20 +84,6 @@ function Coin({ star = false }: { star?: boolean }) {
   );
 }
 
-function JellyFace({ cx, cy, scale = 1, dark }: { cx: number; cy: number; scale?: number; dark: string }) {
-  return (
-    <g transform={`translate(${cx} ${cy}) scale(${scale})`}>
-      <ellipse cx="-7" cy="0" rx="3" ry="3.6" fill={dark} />
-      <ellipse cx="7" cy="0" rx="3" ry="3.6" fill={dark} />
-      <circle cx="-6" cy="-1.3" r="1.2" fill="#ffffff" />
-      <circle cx="8" cy="-1.3" r="1.2" fill="#ffffff" />
-      <path d="M-3 5q3 3 6 0" stroke={dark} strokeWidth="2.2" strokeLinecap="round" fill="none" />
-      <ellipse cx="-12" cy="5" rx="3.5" ry="2" fill="#ff6fa8" opacity="0.45" />
-      <ellipse cx="12" cy="5" rx="3.5" ry="2" fill="#ff6fa8" opacity="0.45" />
-    </g>
-  );
-}
-
 function JellyDrop() {
   return (
     <svg viewBox="0 0 64 64" aria-hidden>
@@ -119,7 +105,7 @@ function JellyDrop() {
       <path d="M52 40c0 9-8.5 15.5-20 15.5" stroke="#9e0f50" strokeOpacity="0.35" strokeWidth="3" strokeLinecap="round" fill="none" />
       <path d="M20 27c3-6 7-11 11-15" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" opacity="0.7" fill="none" />
       <circle cx="17" cy="35" r="2.4" fill="#ffffff" opacity="0.9" />
-      <JellyFace cx={32} cy={42} scale={0.9} dark="#5a0730" />
+      <path d="M38 50c4-1 7-4 8-8" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="2.5" strokeLinecap="round" fill="none" />
     </svg>
   );
 }
@@ -145,7 +131,7 @@ function JellyCube() {
       <path d="M54 30v14c0 7-5 11-12 11H24" stroke="#06704a" strokeOpacity="0.35" strokeWidth="3" strokeLinecap="round" fill="none" />
       <path d="M13 28c0-7 4-12 12-13" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="round" opacity="0.75" fill="none" />
       <circle cx="14" cy="35" r="2.2" fill="#ffffff" opacity="0.85" />
-      <JellyFace cx={32} cy={36} dark="#05432d" />
+      <path d="M22 44h20" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   );
 }

@@ -45,6 +45,9 @@ contract Deploy is Script {
             arcade.setItem(keccak256(bytes(ITEM_SLUGS[i])), uint128(ITEM_PRICES[i] * unit), true);
         }
 
+        // Prize games cost only gas unless PLAY_FEE (in wei of CELO) is set.
+        arcade.setPlayConfig(vm.envOr("PLAY_FEE", uint256(0)), uint32(vm.envOr("MAX_PLAYS_PER_DAY", uint256(5))));
+
         if (finalOwner != deployer) {
             arcade.transferOwnership(finalOwner); // Ownable2Step: new owner must call acceptOwnership()
         }

@@ -21,6 +21,8 @@ import {
   swayX,
   worldForLevel,
 } from '@/lib/game-rules';
+import { onChainMode } from '@/lib/chain/config';
+import { describeError, useWalletStore } from '@/lib/chain/wallet-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { useProgressStore, type Mission } from '@/lib/progress-store';
 import { vibrate } from '@/lib/settings-store';
@@ -29,6 +31,8 @@ import type { RoundFinishResponse } from '@/lib/types';
 export type RoundStatus = 'idle' | 'starting' | 'countdown' | 'playing' | 'paused' | 'submitting' | 'ended';
 
 export type Pop = { id: number; x: number; y: number; label: string; kind: TokenType | 'miss'; skin?: Skin; size?: number };
+
+export type PlayMode = 'prize' | 'free';
 
 export type MascotMood = 'idle' | 'happy' | 'excited' | 'sad' | 'wow';
 
@@ -71,10 +75,12 @@ type GameState = {
   mascot: { mood: MascotMood; line: string | null; at: number };
   result: RoundResult | null;
   localBest: number;
+  mode: PlayMode;
 };
 
 type GameActions = {
-  startRound: () => Promise<void>;
+  /** 'prize' sends the on-chain startGame transaction first (when a contract is set up); 'free' never does. */
+  startRound: (mode?: PlayMode) => Promise<void>;
   tick: (deltaMs: number, now: number) => void;
   tapToken: (tokenId: string) => void;
   pause: () => void;
@@ -219,22 +225,25 @@ export const useGameStore = create<GameState & GameActions>()(
         arenaHeight: ARENA_HEIGHT,
         mascot: { mood: 'idle', line: null, at: 0 },
         localBest: 0,
+        mode: 'prize',
 
         setArenaHeight: (height) => set({ arenaHeight: clamp(height, 300, 900) }),
 
-        startRound: async () => {
+        startRound: async (mode = get().mode) => {
           const status = get().status;
           if (status === 'starting' || status === 'countdown' || status === 'playing' || status === 'paused' || status === 'submitting') return;
-          set({ status: 'starting', result: null });
+          set({ status: 'starting', result: null, mode });
           playSound('button-click', 1);
 
           try {
-            const round = await api.startRound();
+            const wallet = useWalletStore.getState();
+            const txHash = mode === 'prize' && onChainMode && wallet.account ? await wallet.startGameTx() : undefined;
+            const round = await api.startRound(txHash);
             usePlayerStore.getState().setPlayer(round.player);
             set({ ...roundDefaults, collected: {}, roundId: round.roundId, seed: round.seed, ranked: round.ranked, status: 'countdown', countdown: 3 });
-          } catch {
+          } catch (error) {
             set({ status: 'idle' });
-            throw new Error('Couldn’t start. Check your internet and try again.');
+            throw new Error(error instanceof Error && error.message !== 'Failed to fetch' ? describeError(error) : 'Couldn’t start. Check your internet and try again.');
           }
 
           cheer('excited', 'Get ready!');
@@ -456,7 +465,7 @@ export const useGameStore = create<GameState & GameActions>()(
     },
     {
       name: 'xurri-game',
-      partialize: (state) => ({ localBest: state.localBest }),
+      partialize: (state) => ({ localBest: state.localBest, mode: state.mode }),
     },
   ),
 );

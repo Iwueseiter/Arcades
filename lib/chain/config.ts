@@ -17,6 +17,13 @@ export const chainConfig = {
   // When no arcade contract is configured the app runs in demo mode: rewards and purchases are tracked off-chain.
   arcadeAddress: optionalAddress(process.env.NEXT_PUBLIC_ARCADE_ADDRESS),
   explorerUrl: chain.blockExplorers?.default.url ?? 'https://celoscan.io',
+  // GoodDollar's daily UBI claim and face-check registry only exist on Celo mainnet.
+  ubiAddress:
+    optionalAddress(process.env.NEXT_PUBLIC_GD_UBI_ADDRESS) ??
+    (chain.id === celo.id ? getAddress('0x43d72Ff17701B2DA814620735C39C620Ce0ea4A1') : null),
+  identityAddress:
+    optionalAddress(process.env.NEXT_PUBLIC_GD_IDENTITY_ADDRESS) ??
+    (chain.id === celo.id ? getAddress('0xC361A6E67822a0EDc17D899227dd9FC50BD62F42') : null),
 };
 
 export const onChainMode = chainConfig.arcadeAddress !== null;

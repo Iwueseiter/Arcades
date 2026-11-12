@@ -2,35 +2,36 @@
 
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Play } from 'lucide-react';
+import { Check, Play, Zap } from 'lucide-react';
 import { GameScreen } from '@/components/game/GameScreen';
-import { Mascot } from '@/components/game/Mascot';
 import { TokenArt } from '@/components/game/TokenArt';
 import type { TabId } from '@/components/shell/AppShell';
+import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { UbiClaim } from '@/components/wallet/UbiClaim';
+import { onChainMode } from '@/lib/chain/config';
+import { useWalletStore } from '@/lib/chain/wallet-store';
 import type { Skin } from '@/lib/game-rules';
-import { useGameStore } from '@/lib/game-store';
+import { useGameStore, type PlayMode } from '@/lib/game-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { levelFromXp, useProgressStore } from '@/lib/progress-store';
 import { toast } from '@/lib/toast-store';
+import { formatEther } from 'viem';
 
-// Treats drifting around the hero, positioned by hand so the scene feels composed rather than random.
-const FLOATERS: { skin: Skin; left: string; top: string; size: number; delay: number }[] = [
-  { skin: 'coin', left: '8%', top: '18%', size: 46, delay: 0 },
-  { skin: 'jelly-drop', left: '78%', top: '12%', size: 42, delay: 0.6 },
-  { skin: 'bubble', left: '84%', top: '48%', size: 38, delay: 1.2 },
-  { skin: 'candy', left: '4%', top: '56%', size: 44, delay: 0.3 },
-  { skin: 'golden', left: '66%', top: '30%', size: 34, delay: 0.9 },
-  { skin: 'jelly-cube', left: '22%', top: '6%', size: 34, delay: 1.5 },
+// Treats falling through the hero, each on its own lane, speed and delay.
+const RAIN: { skin: Skin; left: string; size: number; duration: number; delay: number }[] = [
+  { skin: 'coin', left: '70%', size: 54, duration: 6, delay: 0 },
+  { skin: 'golden', left: '84%', size: 40, duration: 7.5, delay: 2.4 },
+  { skin: 'jelly-drop', left: '58%', size: 38, duration: 6.8, delay: 4.1 },
+  { skin: 'candy', left: '88%', size: 44, duration: 8, delay: 1.2 },
+  { skin: 'bubble', left: '64%', size: 36, duration: 7.2, delay: 5.6 },
 ];
 
-const GREETINGS = ['Ready to pop some treats?', 'Let’s get a sweet streak!', 'I’m hungry for a high score!'];
-
 const HOW_TO: { skin: Skin; label: string }[] = [
-  { skin: 'coin', label: 'Tap' },
-  { skin: 'jelly-drop', label: 'Tap' },
-  { skin: 'golden', label: 'x2 pts' },
+  { skin: 'coin', label: '+10' },
+  { skin: 'jelly-cube', label: '+10' },
+  { skin: 'golden', label: '+20' },
   { skin: 'rocket', label: 'Slow down' },
-  { skin: 'bomb', label: 'Avoid!' },
+  { skin: 'bomb', label: 'Avoid' },
 ];
 
 function Missions() {
@@ -86,13 +87,18 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
   const status = useGameStore((s) => s.status);
   const startRound = useGameStore((s) => s.startRound);
   const exit = useGameStore((s) => s.exit);
+  const account = useWalletStore((s) => s.account);
+  const chainState = useWalletStore((s) => s.chainState);
   const rank = levelFromXp(useProgressStore((s) => s.xp));
-  const roundsLeft = player?.roundsLeft ?? 0;
-  const greeting = GREETINGS[new Date().getDate() % GREETINGS.length];
 
-  const play = async () => {
+  // On-chain the contract counts prize games; otherwise the server does.
+  const prizeLeft = onChainMode ? (chainState?.playsLeft ?? 0) : (player?.roundsLeft ?? 0);
+  const playFee = chainState?.playFee ?? 0n;
+  const busy = !player || status !== 'idle';
+
+  const play = async (mode: PlayMode) => {
     try {
-      await startRound();
+      await startRound(mode);
     } catch (error) {
       toast.error('Couldn’t start the game', error instanceof Error ? error.message : undefined);
       exit();
@@ -102,44 +108,59 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
   return (
     <>
       <section className="home-hero">
-        <div className="hero-sun" aria-hidden />
-        <div className="hero-cloud c1" aria-hidden />
-        <div className="hero-cloud c2" aria-hidden />
-        {FLOATERS.map((f) => (
+        <div className="hero-glow" aria-hidden />
+        {RAIN.map((drop) => (
           <motion.span
-            key={f.skin}
-            className="hero-treat"
-            style={{ left: f.left, top: f.top, width: f.size }}
-            animate={{ y: [0, -8, 0], rotate: [-6, 6, -6] }}
-            transition={{ repeat: Infinity, duration: 3.2, delay: f.delay, ease: 'easeInOut' }}
+            key={drop.skin}
+            className="hero-drop"
+            style={{ left: drop.left, width: drop.size }}
+            initial={{ y: -80, rotate: -10 }}
+            animate={{ y: 380, rotate: 20 }}
+            transition={{ repeat: Infinity, duration: drop.duration, delay: drop.delay, ease: 'linear' }}
             aria-hidden
           >
-            <TokenArt skin={f.skin} />
+            <TokenArt skin={drop.skin} />
           </motion.span>
         ))}
 
-        <div className="hero-mascot">
-          <Mascot mood="happy" line={greeting} at={1} size={112} side="right" />
-        </div>
-
+        <p className="hero-kicker">
+          <Zap size={13} fill="currentColor" /> Daily arcade on Celo
+        </p>
         <h1 className="hero-title">
-          Pop the <span>treats!</span>
+          Pop. Streak.
+          <br />
+          <span>Win G$.</span>
         </h1>
+        <p className="hero-copy">Tap the treats before they fall. Quick rounds, real prizes.</p>
 
-        <motion.button
-          type="button"
-          className="play-btn"
-          onClick={play}
-          disabled={!player || status !== 'idle'}
-          whileTap={{ scale: 0.97 }}
-          animate={{ scale: [1, 1.03, 1] }}
-          transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
-        >
-          <Play size={30} fill="currentColor" strokeWidth={0} />
-          PLAY
-        </motion.button>
-        <p className="hero-sub">{roundsLeft > 0 ? `${roundsLeft} prize ${roundsLeft === 1 ? 'game' : 'games'} left today` : 'Free play · more prize games tomorrow'}</p>
+        <div className="hero-actions">
+          {onChainMode && !account ? (
+            <ConnectButton block label="Connect wallet to play for G$" />
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary btn-block hero-play"
+              onClick={() => play('prize')}
+              disabled={busy || prizeLeft <= 0}
+            >
+              <Play size={20} fill="currentColor" strokeWidth={0} />
+              {prizeLeft > 0 ? 'Play for G$' : 'No prize games left today'}
+            </button>
+          )}
+          <button type="button" className="btn btn-dark btn-block" onClick={() => play('free')} disabled={busy}>
+            Free play
+          </button>
+        </div>
+        <p className="hero-meta">
+          {onChainMode && account
+            ? `${prizeLeft} prize ${prizeLeft === 1 ? 'game' : 'games'} left today · ${playFee > 0n ? `${formatEther(playFee)} CELO + network fee` : 'tiny CELO network fee'}`
+            : onChainMode
+              ? 'Free play needs no wallet.'
+              : `${prizeLeft} prize ${prizeLeft === 1 ? 'game' : 'games'} left today`}
+        </p>
       </section>
+
+      <UbiClaim compact />
 
       <section className="stat-strip">
         <div>
@@ -175,7 +196,7 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
             </div>
           ))}
         </div>
-        <p className="panel-copy">Pop treats before they hit the floor. Pop many in a row for bigger points!</p>
+        <p className="panel-copy">Pop treats before they hit the floor. Pop many in a row for bigger points.</p>
       </section>
 
       {status !== 'idle' && <GameScreen onViewRanks={() => onNavigate('ranks')} />}

@@ -15,7 +15,7 @@ import {
   type Hash,
 } from 'viem';
 import { api } from '@/lib/api';
-import { arcadeAbi, erc20Abi } from '@/lib/chain/abi';
+import { arcadeAbi, erc20Abi, identityAbi, ubiAbi } from '@/lib/chain/abi';
 import { chainConfig } from '@/lib/chain/config';
 import { usePlayerStore } from '@/lib/player-store';
 import { SHOP_ITEMS, itemIdFor } from '@/lib/shop-catalog';
@@ -41,6 +41,16 @@ export type OnChainState = {
   pool: number;
   referralBonus: number;
   owned: string[];
+  playFee: bigint;
+  playsLeft: number;
+};
+
+/** The player's GoodDollar daily claim (UBI), straight from GoodDollar's own contracts. */
+export type UbiState = {
+  amount: number;
+  verified: boolean;
+  claimedToday: boolean;
+  nextClaimAt: number;
 };
 
 type WalletState = {
@@ -50,6 +60,9 @@ type WalletState = {
   hasProvider: boolean;
   isMiniPay: boolean;
   chainState: OnChainState | null;
+  ubi: UbiState | null;
+  /** True once a UBI read finished (successfully or not), so the UI can tell loading from unavailable. */
+  ubiChecked: boolean;
   init: () => Promise<void>;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
@@ -58,6 +71,9 @@ type WalletState = {
   claimRewards: () => Promise<number | null>;
   buyItem: (slug: string) => Promise<boolean>;
   setReferrer: (referrer: Address) => Promise<boolean>;
+  refreshUbi: () => Promise<void>;
+  claimUbi: () => Promise<number | null>;
+  startGameTx: () => Promise<Hash>;
 };
 
 const toG = (value: bigint) => Number(formatUnits(value, chainConfig.tokenDecimals));
@@ -81,6 +97,8 @@ export function describeError(error: unknown): string {
         ItemUnavailable: 'That item is not for sale right now.',
         AlreadyOwned: 'You already own this item.',
         EnforcedPause: 'Xurri is taking a short break. Try again soon.',
+        WrongPlayFee: 'The game price changed. Please try again.',
+        NoPlaysLeft: 'No prize games left today. Free play is still on!',
       };
       const name = revert.data?.errorName;
       if (name && messages[name]) return messages[name];
@@ -135,6 +153,8 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
   hasProvider: false,
   isMiniPay: false,
   chainState: null,
+  ubi: null,
+  ubiChecked: false,
 
   init: async () => {
     const provider = getProvider();
@@ -192,6 +212,7 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
   },
 
   refreshChain: async () => {
+    void get().refreshUbi();
     const { account } = get();
     const arcade = chainConfig.arcadeAddress;
     if (!account) return;
@@ -217,6 +238,8 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
           { ...base, functionName: 'rewardsClaimed', args: [account] },
           { ...base, functionName: 'poolBalance' },
           { ...base, functionName: 'referralBonus' },
+          { ...base, functionName: 'playFee' },
+          { ...base, functionName: 'playsLeft', args: [account] },
         ],
       }),
       publicClient.multicall({
@@ -225,7 +248,7 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
       }),
     ]);
 
-    const [verified, preview, streak, playerInfo, claimed, pool, referralBonus] = results;
+    const [verified, preview, streak, playerInfo, claimed, pool, referralBonus, playFee, playsLeft] = results;
     const previewValue = preview.status === 'success' ? preview.result : null;
     const info = playerInfo.status === 'success' ? playerInfo.result : null;
 
@@ -242,6 +265,8 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
         rewardsClaimed: claimed.status === 'success' ? toG(claimed.result) : 0,
         pool: pool.status === 'success' ? toG(pool.result) : 0,
         referralBonus: referralBonus.status === 'success' ? toG(referralBonus.result) : 0,
+        playFee: playFee.status === 'success' ? (playFee.result as bigint) : 0n,
+        playsLeft: playsLeft.status === 'success' ? Number(playsLeft.result) : 0,
         owned: SHOP_ITEMS.filter((_, index) => owns[index]?.status === 'success' && owns[index].result === true).map(
           (item) => item.slug,
         ),
@@ -358,9 +383,73 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
       set({ busy: null });
     }
   },
+
+  refreshUbi: async () => {
+    const { account } = get();
+    const { ubiAddress, identityAddress } = chainConfig;
+    if (!account || !ubiAddress || !identityAddress) return set({ ubi: null, ubiChecked: true });
+    try {
+      const [amount, root, day, periodStart] = await Promise.all([
+        publicClient.readContract({ address: ubiAddress, abi: ubiAbi, functionName: 'checkEntitlement', args: [account] }),
+        publicClient.readContract({ address: identityAddress, abi: identityAbi, functionName: 'getWhitelistedRoot', args: [account] }),
+        publicClient.readContract({ address: ubiAddress, abi: ubiAbi, functionName: 'currentDay' }),
+        publicClient.readContract({ address: ubiAddress, abi: ubiAbi, functionName: 'periodStart' }),
+      ]);
+      set({
+        ubi: {
+          amount: toG(amount),
+          verified: !/^0x0{40}$/i.test(root),
+          // checkEntitlement returns 0 once today's claim has been taken
+          claimedToday: amount === 0n,
+          nextClaimAt: (Number(periodStart) + (Number(day) + 1) * 86400) * 1000,
+        },
+        ubiChecked: true,
+      });
+    } catch {
+      set({ ubi: null, ubiChecked: true });
+    }
+  },
+
+  claimUbi: async () => {
+    const { account, ubi } = get();
+    const ubiAddress = chainConfig.ubiAddress;
+    if (!account || !ubiAddress) return null;
+    set({ busy: 'Claiming your free G$' });
+    try {
+      await sendTx(account, async (wallet) => {
+        const { request } = await publicClient.simulateContract({ account, address: ubiAddress, abi: ubiAbi, functionName: 'claim' });
+        return wallet.writeContract(request);
+      });
+      await get().refreshChain();
+      return ubi?.amount ?? 0;
+    } finally {
+      set({ busy: null });
+    }
+  },
+
+  // Starts a prize game on-chain. The player pays the network fee (and the play fee, if one is set).
+  startGameTx: async () => {
+    const { account } = get();
+    const arcade = chainConfig.arcadeAddress;
+    if (!account || !arcade) throw new Error('Connect your wallet to play for prizes');
+    set({ busy: 'Starting your prize game' });
+    try {
+      const fee = await publicClient.readContract({ address: arcade, abi: arcadeAbi, functionName: 'playFee' });
+      const receipt = await sendTx(account, async (wallet) => {
+        const { request } = await publicClient.simulateContract({ account, address: arcade, abi: arcadeAbi, functionName: 'startGame', value: fee });
+        return wallet.writeContract(request);
+      });
+      void get().refreshChain();
+      return receipt.transactionHash;
+    } finally {
+      set({ busy: null });
+    }
+  },
 }));
 
 const emptyChainState: OnChainState = {
+  playFee: 0n,
+  playsLeft: 0,
   gdBalance: 0,
   verified: false,
   canClaimDaily: false,

@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import { Baloo_2, Manrope } from 'next/font/google';
+import { Manrope, Outfit } from 'next/font/google';
 import './globals.css';
 
-const display = Baloo_2({
-  variable: '--font-baloo',
+const display = Outfit({
+  variable: '--font-heading',
   subsets: ['latin'],
-  weight: ['600', '700', '800'],
+  weight: ['500', '600', '700', '800'],
 });
 
 const body = Manrope({
@@ -17,7 +17,7 @@ const body = Manrope({
 
 export const metadata: Metadata = {
   title: 'Xurri: pop treats, win G$',
-  description: 'A bright, sweet tap game. Pop treats, build streaks and win G$.',
+  description: 'A fast, bright tap game. Pop treats, build streaks and win G$ on Celo.',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,

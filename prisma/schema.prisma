@@ -44,6 +44,8 @@ model GameRound {
   finishedAt  DateTime?
   score       Int?
   rewardMilli Int       @default(0)
+  /// The on-chain startGame transaction that paid for a prize game (on-chain mode only).
+  txHash      String?   @unique
 
   @@index([playerId, startedAt])
 }

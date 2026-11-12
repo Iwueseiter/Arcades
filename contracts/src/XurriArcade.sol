@@ -11,8 +11,10 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /// @notice Minimal view of the GoodDollar Identity contract (face-verified, sybil-resistant accounts).
+/// `getWhitelistedRoot` returns the verified account an address belongs to (itself, or the root it is
+/// connected to), or address(0) when it isn't verified.
 interface IIdentity {
-    function isWhitelisted(address account) external view returns (bool);
+    function getWhitelistedRoot(address account) external view returns (address);
 }
 
 /// @title XurriArcade
@@ -21,6 +23,8 @@ interface IIdentity {
 ///  - Daily check-in: one claim per UTC day, with a capped streak bonus and a one-time referral bonus.
 ///  - Game rewards: the backend validates rounds off-chain and signs an EIP-712 voucher for the
 ///    player's *cumulative* earnings. Players redeem the difference; replaying a voucher pays nothing.
+///  - Prize games: each one starts with `startGame()`, an on-chain transaction that costs only gas by
+///    default (the owner can add a small CELO play fee) and enforces a daily limit per player.
 ///  - Shop: players buy cosmetic/boost items with G$. Revenue goes to the treasury, which defaults
 ///    to this contract so purchases refill the reward pool.
 ///
@@ -59,6 +63,9 @@ contract XurriArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     uint32 public maxStreakBonusDays;
     uint256 public referralBonus; // paid to the referrer on the referee's first daily claim
 
+    uint256 public playFee; // native CELO per prize game; 0 means players only pay gas
+    uint32 public maxPlaysPerDay;
+
     uint256 public dailyVoucherBudget; // max G$ redeemable through vouchers per UTC day, all players
     uint64 public voucherBudgetDay;
     uint256 public voucherSpentToday;
@@ -67,6 +74,7 @@ contract XurriArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     mapping(address => uint256) public rewardsClaimed; // cumulative voucher amount already paid
     mapping(bytes32 => Item) public items;
     mapping(address => mapping(bytes32 => bool)) public owns;
+    mapping(address => mapping(uint64 => uint32)) public playsOnDay;
 
     // ---------------------------------------------------------------------------------------------
     // Events & errors
@@ -84,6 +92,8 @@ contract XurriArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     event DailyConfigUpdated(uint256 dailyReward, uint256 streakBonus, uint32 maxStreakBonusDays, uint256 referralBonus);
     event VoucherBudgetUpdated(uint256 dailyVoucherBudget);
     event Withdrawn(address indexed token, address indexed to, uint256 amount);
+    event GameStarted(address indexed player, uint64 indexed day, uint32 playNumber, uint256 fee);
+    event PlayConfigUpdated(uint256 playFee, uint32 maxPlaysPerDay);
 
     error NotVerified();
     error AlreadyClaimedToday();
@@ -97,6 +107,9 @@ contract XurriArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     error ItemUnavailable();
     error AlreadyOwned();
     error ZeroAddress();
+    error WrongPlayFee();
+    error NoPlaysLeft();
+    error TransferFailed();
 
     // ---------------------------------------------------------------------------------------------
     // Construction
@@ -124,6 +137,7 @@ contract XurriArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
         maxStreakBonusDays = maxStreakBonusDays_;
         referralBonus = referralBonus_;
         dailyVoucherBudget = dailyVoucherBudget_;
+        maxPlaysPerDay = 5;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -200,6 +214,23 @@ contract XurriArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
         emit RewardsClaimed(msg.sender, amount, cumulativeAmount);
     }
 
+    /// @notice Start a prize game. The backend only counts games whose `GameStarted` event it can see.
+    function startGame() external payable nonReentrant whenNotPaused returns (uint32 playNumber) {
+        _requireVerified(msg.sender);
+        if (msg.value != playFee) revert WrongPlayFee();
+        uint64 day = currentDay();
+        playNumber = playsOnDay[msg.sender][day] + 1;
+        if (playNumber > maxPlaysPerDay) revert NoPlaysLeft();
+        playsOnDay[msg.sender][day] = playNumber;
+        emit GameStarted(msg.sender, day, playNumber, msg.value);
+    }
+
+    /// @notice Prize games left today for `account`.
+    function playsLeft(address account) external view returns (uint32) {
+        uint32 used = playsOnDay[account][currentDay()];
+        return used >= maxPlaysPerDay ? 0 : maxPlaysPerDay - used;
+    }
+
     /// @notice Buy a shop item. Requires a prior G$ approval of at least the item price.
     function buyItem(bytes32 itemId) external nonReentrant whenNotPaused {
         Item memory item = items[itemId];
@@ -224,7 +255,7 @@ contract XurriArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     }
 
     function isVerified(address account) public view returns (bool) {
-        return address(identity) == address(0) || identity.isWhitelisted(account);
+        return address(identity) == address(0) || identity.getWhitelistedRoot(account) != address(0);
     }
 
     /// @notice Whether `account` can claim today, what they would get and the streak it would reach.
@@ -287,6 +318,20 @@ contract XurriArcade is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
         maxStreakBonusDays = maxStreakBonusDays_;
         referralBonus = referralBonus_;
         emit DailyConfigUpdated(dailyReward_, streakBonus_, maxStreakBonusDays_, referralBonus_);
+    }
+
+    function setPlayConfig(uint256 playFee_, uint32 maxPlaysPerDay_) external onlyOwner {
+        playFee = playFee_;
+        maxPlaysPerDay = maxPlaysPerDay_;
+        emit PlayConfigUpdated(playFee_, maxPlaysPerDay_);
+    }
+
+    /// @notice Move collected CELO play fees out of the contract.
+    function withdrawNative(address payable to, uint256 amount) external onlyOwner {
+        if (to == address(0)) revert ZeroAddress();
+        (bool ok,) = to.call{value: amount}("");
+        if (!ok) revert TransferFailed();
+        emit Withdrawn(address(0), to, amount);
     }
 
     function setDailyVoucherBudget(uint256 budget) external onlyOwner {

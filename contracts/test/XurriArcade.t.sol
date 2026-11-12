@@ -17,14 +17,18 @@ contract MockGD is ERC20 {
 }
 
 contract MockIdentity is IIdentity {
-    mapping(address => bool) public whitelisted;
+    mapping(address => address) public roots;
 
     function set(address account, bool value) external {
-        whitelisted[account] = value;
+        roots[account] = value ? account : address(0);
     }
 
-    function isWhitelisted(address account) external view returns (bool) {
-        return whitelisted[account];
+    function connect(address account, address root) external {
+        roots[account] = root;
+    }
+
+    function getWhitelistedRoot(address account) external view returns (address) {
+        return roots[account];
     }
 }
 
@@ -290,6 +294,63 @@ contract XurriArcadeTest is Test {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
         arcade.setSigner(alice);
+    }
+
+    function test_connectedWalletCountsAsVerified() public {
+        MockIdentity id = new MockIdentity();
+        vm.prank(owner);
+        arcade.setIdentity(id);
+        id.set(alice, true);
+        id.connect(bob, alice); // bob is a second wallet linked to alice's verified account
+        vm.prank(bob);
+        arcade.claimDaily();
+        assertEq(gd.balanceOf(bob), DAILY);
+    }
+
+    // --- prize games -----------------------------------------------------------------------------
+
+    function test_startGameCountsAndLimitsPlays() public {
+        for (uint256 i = 1; i <= 5; i++) {
+            vm.prank(alice);
+            assertEq(arcade.startGame(), i);
+        }
+        assertEq(arcade.playsLeft(alice), 0);
+        vm.prank(alice);
+        vm.expectRevert(XurriArcade.NoPlaysLeft.selector);
+        arcade.startGame();
+
+        vm.warp(block.timestamp + 1 days);
+        assertEq(arcade.playsLeft(alice), 5);
+        vm.prank(alice);
+        assertEq(arcade.startGame(), 1);
+    }
+
+    function test_playFeeIsExactAndWithdrawable() public {
+        vm.prank(owner);
+        arcade.setPlayConfig(0.01 ether, 5);
+        vm.deal(alice, 1 ether);
+
+        vm.prank(alice);
+        vm.expectRevert(XurriArcade.WrongPlayFee.selector);
+        arcade.startGame{value: 0.005 ether}();
+
+        vm.prank(alice);
+        arcade.startGame{value: 0.01 ether}();
+        assertEq(address(arcade).balance, 0.01 ether);
+
+        address payable treasury = payable(makeAddr("treasury"));
+        vm.prank(owner);
+        arcade.withdrawNative(treasury, 0.01 ether);
+        assertEq(treasury.balance, 0.01 ether);
+    }
+
+    function test_startGameNeedsVerification() public {
+        MockIdentity id = new MockIdentity();
+        vm.prank(owner);
+        arcade.setIdentity(id);
+        vm.prank(alice);
+        vm.expectRevert(XurriArcade.NotVerified.selector);
+        arcade.startGame();
     }
 
     function testFuzz_streakAmountNeverExceedsCap(uint8 days_) public {
