@@ -32,7 +32,7 @@ The tournament closes Monday 00:00 UTC. Prizes go out 24 hours later (`XURRI_TOU
 On Monday, review the week that just ended:
 
 ```bash
-curl -H "Authorization: Bearer $XURRI_ADMIN_SECRET" "https://YOUR_APP/api/admin/players?week=2026-W46"
+curl -H "Authorization: Bearer $XURRI_ADMIN_SECRET" "https://YOUR_APP/api/admin/tournament?week=2026-W46"
 ```
 
 Look at `top` and `flagged`. Warning signs:

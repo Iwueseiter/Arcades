@@ -2,20 +2,12 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 import type { Player } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { getSecret } from '@/lib/server/secrets';
 
 const SESSION_COOKIE = 'gt_session';
 const NONCE_COOKIE = 'gt_nonce';
 const SESSION_MAX_AGE = 60 * 60 * 24 * 180;
 const NONCE_MAX_AGE = 60 * 10;
-
-export function getSecret() {
-  const secret = process.env.XURRI_SESSION_SECRET;
-  if (secret && secret.length >= 32) return secret;
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('XURRI_SESSION_SECRET must be set to at least 32 characters in production');
-  }
-  return 'xurri-dev-only-session-secret-change-me';
-}
 
 const sign = (value: string) => createHmac('sha256', getSecret()).update(value).digest('base64url');
 

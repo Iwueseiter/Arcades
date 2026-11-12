@@ -1,0 +1,710 @@
+.root {
+  min-height: 100vh;
+  background: #fff8f1;
+  color: #24252a;
+  font-family: var(--font-manrope), sans-serif;
+}
+
+.topbar {
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  padding: 12px clamp(18px, 4vw, 56px);
+  background: #fff;
+  border-bottom: 1px solid #f0e5da;
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  margin-left: auto;
+}
+
+.backLink {
+  color: #716b67;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: #d94349;
+  text-decoration: underline;
+}
+
+.signOut,
+.secondaryButton,
+.searchForm button {
+  display: inline-flex;
+  min-height: 39px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 15px;
+  border: 1px solid #e8dcd1;
+  border-radius: 11px;
+  background: #fff;
+  color: #373438;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.signOut:hover,
+.secondaryButton:hover,
+.searchForm button:hover {
+  border-color: #ff9a8d;
+  background: #fff3ec;
+}
+
+.signOut:active,
+.secondaryButton:active,
+.searchForm button:active {
+  transform: translateY(1px);
+}
+
+.secondaryButton:disabled,
+.signOut:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.topError {
+  margin: 0;
+  padding: 11px 24px;
+  background: #fff0ef;
+  color: #a52e32;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.main {
+  width: min(1280px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 38px 0 64px;
+}
+
+.pageHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 27px;
+}
+
+.pageHeading h1,
+.loginCard h1 {
+  margin: 0;
+  color: #25242a;
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(32px, 4vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: #e05355;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+}
+
+.subheading {
+  margin: 10px 0 0;
+  color: #77716d;
+  font-size: 14px;
+}
+
+.headingActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.periodLabel {
+  color: #726d69;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.periodSelect,
+.searchForm input {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #e8dcd1;
+  border-radius: 11px;
+  background: #fff;
+  color: #383438;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.periodSelect:focus,
+.searchForm input:focus,
+.loginForm input:focus {
+  outline: 3px solid #ffddd2;
+  border-color: #ff8e80;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.metricCard {
+  display: flex;
+  min-height: 140px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 7px;
+  padding: 19px 20px;
+  border: 1px solid #f0e5da;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 5px 16px rgb(87 57 37 / 3%);
+}
+
+.metricHighlight {
+  border-color: #f5c2a8;
+  background: linear-gradient(140deg, #fff4ea, #fff);
+}
+
+.metricLabel {
+  color: #77716d;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.metricValue {
+  color: #24242a;
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.metricNote {
+  color: #99908a;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.panel {
+  overflow: hidden;
+  border: 1px solid #f0e5da;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgb(87 57 37 / 3%);
+}
+
+.panelHeading {
+  display: flex;
+  min-height: 75px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 17px 22px;
+  border-bottom: 1px solid #f2e9e2;
+}
+
+.panelHeading h2 {
+  margin: 0;
+  font-family: var(--font-heading), sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.panelHeading p {
+  margin: 4px 0 0;
+  color: #96908b;
+  font-size: 11px;
+}
+
+.infoBanner,
+.errorBanner {
+  margin: 0 0 16px;
+  padding: 12px 15px;
+  border: 1px solid #f0dfc0;
+  border-radius: 12px;
+  background: #fffaf0;
+  color: #79603b;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.errorBanner {
+  border-color: #f1c1c0;
+  background: #fff0ef;
+  color: #9c3332;
+}
+
+.chartTabs,
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;
+  border-radius: 11px;
+  background: #f8f2ed;
+}
+
+.chartTab,
+.chartTabActive,
+.tab,
+.tabActive {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #77716d;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.chartTab,
+.chartTabActive {
+  padding: 8px 11px;
+}
+
+.tab,
+.tabActive {
+  padding: 10px 16px;
+}
+
+.chartTabActive,
+.tabActive {
+  background: #fff;
+  color: #d94349;
+  box-shadow: 0 1px 5px rgb(59 39 27 / 9%);
+}
+
+.chart {
+  display: flex;
+  height: 225px;
+  align-items: stretch;
+  gap: 2px;
+  padding: 19px 20px 10px;
+}
+
+.chartColumn {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.chartValue {
+  min-height: 14px;
+  color: #8b807a;
+  font-size: 9px;
+}
+
+.chartBarTrack {
+  display: flex;
+  width: min(100%, 22px);
+  height: 150px;
+  align-items: flex-end;
+  overflow: hidden;
+  border-radius: 7px 7px 3px 3px;
+  background: #fff5ef;
+}
+
+.chartBar {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  border-radius: 7px 7px 3px 3px;
+  background: linear-gradient(180deg, #ff897c, #fa5c61);
+  transition: height 180ms ease;
+}
+
+.chartDate {
+  display: block;
+  min-height: 17px;
+  margin-top: 7px;
+  color: #938b85;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.dataFootnote {
+  max-width: 900px;
+  margin: 15px 2px 0;
+  color: #948c86;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.sectionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 15px;
+}
+
+.searchForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.searchForm input {
+  width: min(280px, 45vw);
+}
+
+.searchForm button {
+  min-height: 40px;
+  border-color: #ff696a;
+  background: #ff5a5f;
+  color: #fff;
+}
+
+.searchForm button:hover {
+  border-color: #e94d52;
+  background: #ed5056;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table th {
+  padding: 12px 16px;
+  background: #fffbf8;
+  color: #948a83;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.table td {
+  padding: 13px 16px;
+  border-top: 1px solid #f4ede7;
+  color: #4a4645;
+  font-size: 11px;
+}
+
+.table td strong,
+.table td small {
+  display: block;
+}
+
+.table td strong {
+  color: #29272b;
+  font-size: 11px;
+}
+
+.table td small {
+  margin-top: 4px;
+  color: #a19a95;
+  font-size: 9px;
+}
+
+.badge,
+.badgeRanked {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: #f2f1f0;
+  color: #78716d;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.badgeRanked {
+  background: #fff0e7;
+  color: #ca6049;
+}
+
+.emptyState {
+  padding: 28px 20px;
+  color: #89817b;
+  text-align: center;
+  font-size: 12px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 18px;
+  border-top: 1px solid #f2e9e2;
+  color: #89817b;
+  font-size: 11px;
+}
+
+.pagination > div {
+  display: flex;
+  gap: 7px;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.loginPage {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse at 18% 18%, rgb(255 202 171 / 40%), transparent 34%),
+    radial-gradient(ellipse at 85% 85%, rgb(255 215 198 / 40%), transparent 35%),
+    #fff8f1;
+  color: #24252a;
+  font-family: var(--font-manrope), sans-serif;
+}
+
+.loginCard {
+  width: min(420px, 100%);
+  padding: 36px;
+  border: 1px solid #f0e5da;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 22px 65px rgb(78 50 33 / 9%);
+}
+
+.loginBrand {
+  margin-bottom: 20px;
+}
+
+.loginBrand .logo {
+  margin-right: 0;
+}
+
+.loginCard h1 {
+  font-size: 34px;
+}
+
+.loginIntro {
+  margin: 10px 0 23px;
+  color: #77716d;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.configWarning,
+.loginError {
+  padding: 12px;
+  border: 1px solid #efd6b1;
+  border-radius: 11px;
+  background: #fff9ee;
+  color: #805c32;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.configWarning code {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.loginError {
+  border-color: #f1c1c0;
+  background: #fff0ef;
+  color: #9c3332;
+}
+
+.loginForm {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 21px;
+}
+
+.loginForm label {
+  display: grid;
+  gap: 7px;
+  color: #46413e;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.loginForm input {
+  width: 100%;
+  min-height: 45px;
+  padding: 0 12px;
+  border: 1px solid #e8dcd1;
+  border-radius: 11px;
+  background: #fff;
+  color: #29272b;
+  font: inherit;
+  font-size: 13px;
+}
+
+.loginForm input:disabled {
+  background: #f7f3ef;
+  cursor: not-allowed;
+}
+
+.loginButton {
+  min-height: 46px;
+  margin-top: 3px;
+  border: 0;
+  border-radius: 12px;
+  background: #ff5a5f;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.loginButton:hover:not(:disabled) {
+  background: #ed5056;
+}
+
+.loginButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 900px) {
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .topbar {
+    gap: 16px;
+  }
+
+  .backLink {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .main {
+    width: min(100% - 28px, 1280px);
+    padding-top: 27px;
+  }
+
+  .topbar {
+    min-height: 65px;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    padding: 10px 14px;
+  }
+
+  .topActions {
+    gap: 8px;
+  }
+
+  .signOut {
+    min-height: 35px;
+    padding: 0 10px;
+    font-size: 10px;
+  }
+
+  .pageHeading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 17px;
+  }
+
+  .headingActions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .headingActions .periodLabel {
+    width: 100%;
+  }
+
+  .periodSelect {
+    flex: 1;
+  }
+
+  .metricGrid {
+    gap: 9px;
+  }
+
+  .metricCard {
+    min-height: 120px;
+    padding: 14px;
+  }
+
+  .metricValue {
+    font-size: clamp(23px, 7vw, 30px);
+  }
+
+  .panelHeading {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .chartTabs {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .chartTab,
+  .chartTabActive {
+    padding: 8px 7px;
+    font-size: 10px;
+  }
+
+  .chart {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .chartBarTrack {
+    width: min(75%, 18px);
+  }
+
+  .sectionBar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tabs {
+    width: 100%;
+  }
+
+  .tab,
+  .tabActive {
+    flex: 1;
+  }
+
+  .searchForm input {
+    width: 100%;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .loginCard {
+    padding: 28px 22px;
+  }
+}

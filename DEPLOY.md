@@ -102,6 +102,8 @@ DATABASE_URL="postgres://..." npm run db:migrate
 | `XURRI_ADMIN_SECRET` | `openssl rand -hex 32` |
 | `CRON_SECRET` | `openssl rand -hex 32` |
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | your support address |
+| `XURRI_ADMIN_EMAIL`, `XURRI_ADMIN_PASSWORD` | your `/admin` login (password 16+ characters) |
+| `XURRI_DEPLOY_BLOCK` | the block number of the deploy transaction (from Celoscan), for `/analytics` |
 
 3. Deploy. `vercel.json` sets up the hourly prize job automatically.
 4. In Vercel → Firewall, add a rate-limit rule for `/api/*` (e.g. 300 requests a minute per IP).

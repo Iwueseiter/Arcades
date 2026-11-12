@@ -1,35 +1,48 @@
 import { NextResponse } from 'next/server';
-import { getWeekKey } from '@/lib/game-rules';
 import { prisma } from '@/lib/prisma';
-import { hasBearerSecret } from '@/lib/server/admin';
-import { weekStandings } from '@/lib/server/tournament';
+import { isAdminAuthenticated } from '@/lib/server/admin-auth';
 
-/**
- * Review a tournament before its prizes go out: the top players with their round counts, plus
- * every flagged round of the week. `?week=2026-W46` picks a week (default: this one).
- */
 export async function GET(request: Request) {
-  if (!hasBearerSecret(request, 'XURRI_ADMIN_SECRET')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: 'Admin sign-in required' }, { status: 401 });
+  }
 
-  const weekKey = new URL(request.url).searchParams.get('week') ?? getWeekKey();
-  const top = (await weekStandings(weekKey)).slice(0, 30);
+  const search = new URL(request.url).searchParams;
+  const query = search.get('q')?.trim().slice(0, 80) ?? '';
+  const page = Math.max(0, Number.parseInt(search.get('page') ?? '0', 10) || 0);
+  const where = query
+    ? {
+        OR: [
+          { id: { contains: query } },
+          { name: { contains: query } },
+          { address: { contains: query.toLowerCase() } },
+        ],
+      }
+    : {};
 
-  const counts = await prisma.gameRound.groupBy({
-    by: ['playerId'],
-    where: { weekKey, playerId: { in: top.map((row) => row.playerId) } },
-    _count: { _all: true },
-    _max: { score: true },
-  });
-  const flagged = await prisma.gameRound.findMany({
-    where: { weekKey, flagged: { not: null } },
-    orderBy: { score: 'desc' },
-    take: 100,
-    select: { id: true, playerId: true, score: true, flagged: true, finishedAt: true, player: { select: { address: true, name: true } } },
-  });
+  const [players, total] = await Promise.all([
+    prisma.player.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: page * 50,
+      take: 50,
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        gamesPlayed: true,
+        bestScore: true,
+        totalScore: true,
+        earnedMilli: true,
+        banned: true,
+        createdAt: true,
+      },
+    }),
+    prisma.player.count({ where }),
+  ]);
 
-  return NextResponse.json({
-    weekKey,
-    top: top.map((row) => ({ ...row, rounds: counts.find((count) => count.playerId === row.playerId)?._count._all ?? 0 })),
-    flagged,
-  });
+  return NextResponse.json(
+    { players, total, page, pageSize: 50 },
+    { headers: { 'Cache-Control': 'private, no-store' } },
+  );
 }

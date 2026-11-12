@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=--experimental-require-module next dev",
-    "build": "cross-env NODE_OPTIONS=--experimental-require-module next build",
-    "start": "cross-env NODE_OPTIONS=--experimental-require-module next start",
+    "dev": "node --experimental-require-module ./node_modules/next/dist/bin/next dev",
+    "build": "node --experimental-require-module ./node_modules/next/dist/bin/next build",
+    "start": "node --experimental-require-module ./node_modules/next/dist/bin/next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -41,7 +41,6 @@
     "@typescript-eslint/eslint-plugin": "^8.72.1",
     "@typescript-eslint/parser": "^8.72.1",
     "autoprefixer": "^10.4.20",
-    "cross-env": "^7.0.3",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.4",
     "globals": "^17.14.0",
@@ -51,6 +50,6 @@
     "vitest": "^3.2.7"
   },
   "engines": {
-    "node": ">=22.12"
+    "node": "^22.13.0 || >=24.0.0"
   }
 }

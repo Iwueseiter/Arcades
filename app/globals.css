@@ -2046,20 +2046,16 @@ button:disabled {
   text-align: center;
 }
 
-.welcome-title {
+.welcome-brand {
   margin: 10px 0 0;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 3.4rem;
-  line-height: 1;
-  color: #fff;
-  text-shadow: 0 4px 0 var(--blue-deep), 0 10px 20px rgba(26, 120, 207, 0.3);
 }
 
-.welcome-title em {
-  font-style: normal;
-  color: var(--yellow);
-  text-shadow: 0 4px 0 var(--orange-deep), 0 10px 20px rgba(217, 98, 10, 0.3);
+.welcome-brand .logo {
+  margin-right: 0;
+}
+
+.welcome-brand .logo-word {
+  font-size: 3.4rem;
 }
 
 .welcome-tag {

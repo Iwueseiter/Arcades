@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
+import { Logo } from '@/components/brand/Logo';
 import { TokenArt } from '@/components/game/TokenArt';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { api } from '@/lib/api';
@@ -81,13 +82,8 @@ export function Welcome({ onDone, standalone = false }: { onDone: () => void; st
       ))}
 
       <div className="welcome-inner">
-        <motion.h1
-          className="welcome-title"
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 16 }}
-        >
-          <em>X</em>urri
+        <motion.h1 className="welcome-brand" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 16 }}>
+          <Logo />
         </motion.h1>
         <p className="welcome-tag">Pop treats. Win G$.</p>
 

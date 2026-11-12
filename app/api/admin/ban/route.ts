@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { hasBearerSecret } from '@/lib/server/admin';
+import { isAdminRequest } from '@/lib/server/admin';
 
 /** Ban or unban a player: `{ "playerId": "...", "banned": true }`. Banned players can't win or collect prizes. */
 export async function POST(request: Request) {
-  if (!hasBearerSecret(request, 'XURRI_ADMIN_SECRET')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await isAdminRequest(request))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = (await request.json().catch(() => ({}))) as { playerId?: unknown; banned?: unknown };
   if (typeof body.playerId !== 'string' || typeof body.banned !== 'boolean') {

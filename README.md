@@ -45,7 +45,7 @@ Live numbers for players, retention and G$ flows are on **`/stats`** (JSON at `/
 
 ## Run it locally
 
-Needs Node 22 and Docker.
+Needs Node 22.13+ (or 24+) and Docker.
 
 ```bash
 npm install
@@ -82,6 +82,12 @@ Shared roles (`contracts/src/base/XurriBase.sol`):
 | Admin | A Safe multisig | Move money, change the signer, the identity contract or the UBI address, raise the payout limit, unpause, manage roles. Handing admin over takes a 2-day wait. |
 | Operator | The Safe (or a team key later) | Set shop prices, the daily gift (under its cap) and games per day |
 | Pauser | A fast-reacting team key | Pause only. It can't unpause or move money. |
+
+## Dashboards
+
+- **`/stats`**: public numbers for players and grant reviewers: weekly retention, verified people, G$ claimed, paid, spent and sent to UBI, and the contract links.
+- **`/analytics`**: the team's traffic dashboard (page views, active players, daily trends, lifetime on-chain totals from the contracts' events). It refreshes every 30 seconds. On-chain totals need `XURRI_DEPLOY_BLOCK`.
+- **`/admin`**: protected player and game directory, with tournament games' bot-check flags. Sign in with `XURRI_ADMIN_EMAIL` and `XURRI_ADMIN_PASSWORD` (16+ characters). The tournament review and ban API (`/api/admin/tournament`, `/api/admin/ban`) accepts that login or `XURRI_ADMIN_SECRET` for scripts.
 
 ## Deploying
 

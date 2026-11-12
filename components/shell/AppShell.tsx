@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AudioManager } from '@/components/audio/AudioManager';
+import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 import { BottomNav } from '@/components/shell/BottomNav';
 import { TopBar } from '@/components/shell/TopBar';
 import { TxOverlay } from '@/components/shell/TxOverlay';
@@ -45,6 +46,7 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
 
   return (
     <main className="app-shell">
+      <PageViewTracker path={tab === 'play' ? '/' : `/?tab=${tab}`} />
       <div className="app-frame">
         <TopBar onOpenProfile={() => selectTab('me')} />
         <AnimatePresence mode="wait" initial={false}>
