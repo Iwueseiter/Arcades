@@ -12,6 +12,51 @@ export const arcadeAbi = [
       { name: 'fee', type: 'uint256', indexed: false },
     ],
   },
+  {
+    type: 'event',
+    name: 'DailyClaimed',
+    inputs: [
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
+      { name: 'streak', type: 'uint32', indexed: false },
+      { name: 'day', type: 'uint64', indexed: false },
+    ],
+  },
+  {
+    type: 'event',
+    name: 'RewardsClaimed',
+    inputs: [
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
+      { name: 'cumulativeAmount', type: 'uint256', indexed: false },
+    ],
+  },
+  {
+    type: 'event',
+    name: 'ReferrerSet',
+    inputs: [
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'referrer', type: 'address', indexed: true },
+    ],
+  },
+  {
+    type: 'event',
+    name: 'ReferralPaid',
+    inputs: [
+      { name: 'referrer', type: 'address', indexed: true },
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
+    ],
+  },
+  {
+    type: 'event',
+    name: 'ItemPurchased',
+    inputs: [
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'itemId', type: 'bytes32', indexed: true },
+      { name: 'price', type: 'uint256', indexed: false },
+    ],
+  },
   { type: 'function', name: 'claimDaily', stateMutability: 'nonpayable', inputs: [], outputs: [{ name: 'amount', type: 'uint256' }] },
   {
     type: 'function',

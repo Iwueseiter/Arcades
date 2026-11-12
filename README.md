@@ -16,7 +16,7 @@ Without a contract address the app runs in **test mode**: everything works with 
 
 ## Run it locally
 
-Needs Node 22.12+ (22.10 works too; the scripts add the flag it needs).
+Use Node 22.13+ LTS or Node 24+. Node runs the Next.js server on Windows; iPhone users access the responsive app in Safari or MiniPay. Node.js itself does not run natively on iOS.
 
 ```bash
 npm install
@@ -104,3 +104,12 @@ Set these where the app is hosted, then rebuild:
 - `npm run lint`, `npm run typecheck`
 - `npm run db:push`: update the database tables
 - `npm run contracts:test` / `contracts:simulate` / `contracts:deploy`
+
+## Team dashboards
+
+- `/analytics` is a public aggregate dashboard that refreshes every 30 seconds; `/admin` is the separate, protected player and game-round directory.
+- Configure `XURRI_ADMIN_EMAIL` and a unique `XURRI_ADMIN_PASSWORD` of at least 16 characters on the server for `/admin`. Admin sessions are signed, HTTP-only cookies and expire after eight hours.
+- Run `npm run db:push` after adding the analytics tables.
+- On-chain transaction and payout totals require `NEXT_PUBLIC_ARCADE_ADDRESS` and the decimal `XURRI_ARCADE_DEPLOY_BLOCK`. The analytics screen indexes Xurri arcade contract history in batches; it counts Xurri's daily, game and referral payouts, not claims made directly through GoodDollar's UBI contract.
+- First-party page-view tracking starts after this version is deployed; historical traffic is not available.
+- Analytics exposes only aggregate counts publicly; do not add personally identifying details to its response.

@@ -50,4 +50,44 @@ model GameRound {
   @@index([playerId, startedAt])
 }
 
+model AnalyticsPageView {
+  id         String   @id @default(cuid())
+  visitorId  String
+  pagePath   String
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([visitorId, createdAt])
+}
+
+model ArcadeContractTransaction {
+  id              String @id
+  txHash          String
+  chainId         Int
+  contractAddress String
+  blockNumber     BigInt
+
+  @@index([chainId, contractAddress])
+}
+
+model ArcadeContractEvent {
+  id              String @id
+  txHash          String
+  chainId         Int
+  contractAddress String
+  eventName       String
+  playerAddress   String?
+  amount          String?
+  blockNumber     BigInt
+
+  @@index([chainId, contractAddress, eventName])
+  @@index([blockNumber])
+}
+
+model ArcadeIndexState {
+  id               String   @id
+  lastIndexedBlock BigInt
+  updatedAt        DateTime @updatedAt
+}
+
 
