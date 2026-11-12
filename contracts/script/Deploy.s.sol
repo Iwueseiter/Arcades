@@ -34,10 +34,16 @@ contract Deploy is Script {
         address ubi = vm.envOr("UBI_RECIPIENT", block.chainid == 42220 ? CELO_UBI_SCHEME : address(0));
         uint16 ubiShare = uint16(vm.envOr("UBI_SHARE_BPS", uint256(1000)));
 
-        // The admin can withdraw every pot, so on mainnet it must be a multisig, not a plain key.
+        // The admin can withdraw every pot, so on mainnet it should be a multisig. A personal wallet is
+        // allowed only when ALLOW_PERSONAL_ADMIN=true; it can hand admin to a Safe later (2-day wait).
         if (block.chainid == 42220) {
-            require(admin != deployer && admin.code.length > 0, "ADMIN must be a Safe multisig on mainnet");
             require(address(identity) != address(0), "GD_IDENTITY is required on mainnet");
+            if (vm.envOr("ALLOW_PERSONAL_ADMIN", false)) {
+                require(admin != address(0), "ADMIN is required");
+                if (admin.code.length == 0) console2.log("WARNING: ADMIN is a personal wallet, not a Safe. Guard its key.");
+            } else {
+                require(admin != deployer && admin.code.length > 0, "ADMIN must be a Safe multisig on mainnet (or set ALLOW_PERSONAL_ADMIN=true)");
+            }
         }
 
         uint256 unit = 10 ** IERC20Metadata(address(token)).decimals();
