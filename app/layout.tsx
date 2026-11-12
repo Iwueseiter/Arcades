@@ -12,7 +12,7 @@ const display = Outfit({
 const body = Manrope({
   variable: '--font-manrope',
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['400', '500', '600', '800', '800'],
 });
 
 export const metadata: Metadata = {
