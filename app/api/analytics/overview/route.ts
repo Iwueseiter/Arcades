@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server';
 import { formatUnits } from 'viem';
 import { chainConfig } from '@/lib/chain/config';
 import { prisma } from '@/lib/prisma';
-import { syncArcadeEvents } from '@/lib/server/arcade-indexer';
-
-const CLAIM_EVENTS = ['DailyClaimed', 'RewardsClaimed', 'ReferralPaid'];
+import { PAYOUT_EVENTS, SPEND_EVENTS, UBI_EVENTS, indexedContracts, syncArcadeEvents } from '@/lib/server/arcade-indexer';
 
 export async function GET(request: Request) {
   const search = new URL(request.url).searchParams;
@@ -63,25 +61,27 @@ export async function GET(request: Request) {
 
   let transactions: number | null = null;
   let gDollarPaid: string | null = null;
-  if (chainConfig.arcadeAddress) {
-    const contractAddress = chainConfig.arcadeAddress.toLowerCase();
-    const [transactionCount, payoutEvents] = await Promise.all([
-      prisma.arcadeContractTransaction.count({
-        where: { chainId: chainConfig.chain.id, contractAddress },
-      }),
+  let gDollarSpent: string | null = null;
+  let gDollarToUbi: string | null = null;
+  const contracts = indexedContracts().map((address) => address.toLowerCase());
+  if (contracts.length) {
+    const scope = { chainId: chainConfig.chain.id, contractAddress: { in: contracts } };
+    const [transactionCount, moneyEvents] = await Promise.all([
+      prisma.arcadeContractTransaction.count({ where: scope }),
       prisma.arcadeContractEvent.findMany({
-        where: {
-          chainId: chainConfig.chain.id,
-          contractAddress,
-          eventName: { in: CLAIM_EVENTS },
-          amount: { not: null },
-        },
-        select: { amount: true },
+        where: { ...scope, eventName: { in: [...PAYOUT_EVENTS, ...SPEND_EVENTS, ...UBI_EVENTS] }, amount: { not: null } },
+        select: { eventName: true, amount: true },
       }),
     ]);
-    const claimedBaseUnits = payoutEvents.reduce((total, event) => total + BigInt(event.amount ?? '0'), 0n);
+    const total = (names: string[]) =>
+      formatUnits(
+        moneyEvents.filter((event) => names.includes(event.eventName)).reduce((sum, event) => sum + BigInt(event.amount ?? '0'), 0n),
+        chainConfig.tokenDecimals,
+      );
     transactions = transactionCount;
-    gDollarPaid = formatUnits(claimedBaseUnits, chainConfig.tokenDecimals);
+    gDollarPaid = total(PAYOUT_EVENTS);
+    gDollarSpent = total(SPEND_EVENTS);
+    gDollarToUbi = total(UBI_EVENTS);
   }
 
   const dateKey = (value: string | Date) => (value instanceof Date ? value.toISOString() : value).slice(0, 10);
@@ -114,6 +114,8 @@ export async function GET(request: Request) {
       trend,
       arcadeTransactions: transactions,
       gDollarPaid,
+      gDollarSpent,
+      gDollarToUbi,
       chainIndex,
     },
     { headers: { 'Cache-Control': 'private, no-store' } },

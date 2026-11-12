@@ -24,6 +24,8 @@ type Analytics = {
   uniqueVisitors: number;
   arcadeTransactions: number | null;
   gDollarPaid: string | null;
+  gDollarSpent: string | null;
+  gDollarToUbi: string | null;
   trend: TrendPoint[];
   chainIndex: ChainIndex;
 };
@@ -87,10 +89,10 @@ export function AnalyticsDashboard() {
   let chainError = false;
   switch (data?.chainIndex.status) {
     case 'not-configured':
-      chainMessage = 'On-chain totals are unavailable in demo mode. Configure NEXT_PUBLIC_ARCADE_ADDRESS to enable them.';
+      chainMessage = 'On-chain totals are unavailable in demo mode. Set the NEXT_PUBLIC_GIFT_ADDRESS, NEXT_PUBLIC_TOURNAMENTS_ADDRESS and NEXT_PUBLIC_SHOP_ADDRESS values to enable them.';
       break;
     case 'deployment-block-required':
-      chainMessage = 'Add XURRI_ARCADE_DEPLOY_BLOCK to index the contract history and calculate lifetime totals.';
+      chainMessage = 'Add XURRI_DEPLOY_BLOCK to index the contract history and calculate lifetime totals.';
       break;
     case 'waiting-for-deployment-block':
       chainMessage = `Waiting for configured deployment block. Current chain height: ${data.chainIndex.latestBlock}.`;
@@ -167,14 +169,24 @@ export function AnalyticsDashboard() {
           <span className={styles.metricNote}>Anonymous browser IDs in this period</span>
         </article>
         <article className={styles.metricCard}>
-          <span className={styles.metricLabel}>Arcade transactions</span>
+          <span className={styles.metricLabel}>Contract transactions</span>
           <strong className={styles.metricValue}>{data?.arcadeTransactions?.toLocaleString() ?? '—'}</strong>
-          <span className={styles.metricNote}>On-chain Xurri contract transactions, lifetime</span>
+          <span className={styles.metricNote}>Gift, tournament and shop transactions, lifetime</span>
         </article>
         <article className={`${styles.metricCard} ${styles.metricHighlight}`}>
           <span className={styles.metricLabel}>G$ paid by Xurri</span>
           <strong className={styles.metricValue}>{compactAmount(data?.gDollarPaid ?? null)}</strong>
-          <span className={styles.metricNote}>Daily, game and referral payouts · lifetime</span>
+          <span className={styles.metricNote}>Daily gifts and tournament prizes · lifetime</span>
+        </article>
+        <article className={styles.metricCard}>
+          <span className={styles.metricLabel}>G$ spent in Xurri</span>
+          <strong className={styles.metricValue}>{compactAmount(data?.gDollarSpent ?? null)}</strong>
+          <span className={styles.metricNote}>Prize pot boosts and shop items · lifetime</span>
+        </article>
+        <article className={styles.metricCard}>
+          <span className={styles.metricLabel}>G$ sent to UBI</span>
+          <strong className={styles.metricValue}>{compactAmount(data?.gDollarToUbi ?? null)}</strong>
+          <span className={styles.metricNote}>Share of spending sent to GoodDollar’s UBI pool</span>
         </article>
       </section>
 
@@ -213,7 +225,7 @@ export function AnalyticsDashboard() {
         )}
       </section>
       <p className={styles.dataFootnote}>
-        Traffic starts being collected when tracking is enabled; older visits are not available. G$ paid counts payouts emitted by the configured Xurri arcade contract and excludes GoodDollar UBI claims made directly through GoodDollar.
+        Traffic starts being collected when tracking is enabled; older visits are not available. G$ paid counts daily gifts and tournament prizes paid by the Xurri contracts; it excludes GoodDollar UBI claims, which GoodDollar pays directly.
       </p>
     </main>
   );

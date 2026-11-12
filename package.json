@@ -8,13 +8,16 @@
     "start": "node --experimental-require-module ./node_modules/next/dist/bin/next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
     "contracts:install": "cd contracts && forge install --no-git OpenZeppelin/openzeppelin-contracts@v5.4.0 foundry-rs/forge-std@v1.17.0",
     "contracts:test": "cd contracts && forge test",
     "contracts:test-token": "cd contracts && forge script script/TestToken.s.sol --tc DeployTestToken --rpc-url celo_sepolia --broadcast",
     "contracts:deploy:testnet": "cd contracts && forge script script/Deploy.s.sol --rpc-url celo_sepolia --broadcast",
     "contracts:simulate": "cd contracts && forge script script/Deploy.s.sol --rpc-url celo",
-    "contracts:deploy": "cd contracts && forge script script/Deploy.s.sol --rpc-url celo --broadcast --verify"
+    "contracts:deploy": "cd contracts && forge script script/Deploy.s.sol --rpc-url celo --broadcast --verify",
+    "deploy:mainnet": "bash scripts/deploy-mainnet.sh"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -44,7 +47,8 @@
     "globals": "^17.14.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^4.3.4",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^3.2.7"
   },
   "engines": {
     "node": "^22.13.0 || >=24.0.0"

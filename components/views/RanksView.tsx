@@ -4,18 +4,20 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, RefreshCw, Timer, Wallet } from 'lucide-react';
 import type { TabId } from '@/components/shell/AppShell';
+import { PotCard } from '@/components/tournament/PotCard';
 import { Avatar } from '@/components/ui/Avatar';
 import { api } from '@/lib/api';
-import { avatarColor, formatDuration, initials } from '@/lib/format';
+import { avatarColor, formatDuration, formatG, initials } from '@/lib/format';
 import type { LeaderboardResponse, LeaderboardRow } from '@/lib/types';
+import { tournamentsEnabled } from '@/lib/chain/config';
 
 const PODIUM = [
-  { place: 2, height: 74, color: '#8aa0b8', bg: 'linear-gradient(180deg, #e6edf5, #d3dde9)' },
-  { place: 1, height: 100, color: '#e6a400', bg: 'linear-gradient(180deg, #fff1b8, #ffd966)' },
-  { place: 3, height: 58, color: '#d27b3e', bg: 'linear-gradient(180deg, #ffe0c7, #f8c49b)' },
+  { place: 2, height: 92, color: '#8aa0b8', bg: '#dfe6ef' },
+  { place: 1, height: 112, color: '#e6a400', bg: '#ffe48a' },
+  { place: 3, height: 80, color: '#d27b3e', bg: '#fbd3b2' },
 ];
 
-function Row({ row, index }: { row: LeaderboardRow; index: number }) {
+function Row({ row, index, prize }: { row: LeaderboardRow; index: number; prize?: number }) {
   return (
     <motion.div
       className={`rank-row ${row.isYou ? 'you' : ''}`}
@@ -30,9 +32,12 @@ function Row({ row, index }: { row: LeaderboardRow; index: number }) {
         {row.isYou && <span className="badge" style={{ padding: '2px 7px' }}>You</span>}
         {row.verifiedWallet && <Wallet size={13} color="var(--mint)" aria-label="Wallet player" />}
       </span>
-      <strong className="num" style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem' }}>
-        {row.score.toLocaleString()}
-      </strong>
+      <span style={{ textAlign: 'right', lineHeight: 1.1 }}>
+        <strong className="num" style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', display: 'block' }}>
+          {row.score.toLocaleString()}
+        </strong>
+        {prize ? <span className="num" style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--mint)' }}>{formatG(prize)} G$</span> : null}
+      </span>
     </motion.div>
   );
 }
@@ -67,8 +72,13 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
       <div className="card card-hero">
         <div className="row">
           <div>
-            <p className="eyebrow">This week</p>
+            <p className="eyebrow">{tournamentsEnabled ? 'Weekly tournament' : 'This week'}</p>
             <h1 className="title-xl">Top poppers</h1>
+            {data && data.prizes.length > 0 && (
+              <p className="copy" style={{ marginTop: 4, fontSize: '0.85rem' }}>
+                Top {data.prizes.length} win G$ · {formatG(data.prizes.reduce((sum, prize) => sum + prize, 0))} G$ in prizes
+              </p>
+            )}
           </div>
           <button type="button" className="icon-btn" onClick={load} aria-label="Refresh leaderboard" disabled={loading}>
             <RefreshCw size={17} className={loading ? 'animate-spin' : ''} />
@@ -76,7 +86,7 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
         </div>
         {data && (
           <span className="badge" style={{ marginTop: 10 }}>
-            <Timer size={12} /> Resets in {formatDuration(data.resetsInMs)}
+            <Timer size={12} /> Ends in {formatDuration(data.resetsInMs)}
           </span>
         )}
 
@@ -103,6 +113,11 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
                     <span className="num" style={{ fontSize: '0.85rem', color: 'var(--ink)' }}>
                       {row.score.toLocaleString()}
                     </span>
+                    {data?.prizes[place - 1] ? (
+                      <span className="num" style={{ fontSize: '0.72rem', color: 'var(--ink)', opacity: 0.7 }}>
+                        {formatG(data.prizes[place - 1])} G$
+                      </span>
+                    ) : null}
                   </div>
                 </motion.div>
               );
@@ -110,6 +125,8 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
           </div>
         )}
       </div>
+
+      {data && tournamentsEnabled && <PotCard total={data.pot.total} boosted={data.pot.boosted} onBoosted={load} />}
 
       {loading && !data && (
         <div style={{ display: 'grid', gap: 8 }}>
@@ -127,7 +144,7 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
         <div className="card" style={{ textAlign: 'center' }}>
           <p className="title-md">No scores yet this week</p>
           <p className="copy" style={{ margin: '6px 0 14px' }}>
-            Play a prize game and take the top spot.
+            Play a game and take the top spot.
           </p>
           <button type="button" className="btn btn-primary btn-block" onClick={() => onNavigate('play')}>
             Play now
@@ -138,7 +155,7 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
       {rest.length > 0 && (
         <div style={{ display: 'grid', gap: 8 }}>
           {rest.map((row, i) => (
-            <Row key={`${row.rank}-${row.name}`} row={row} index={i} />
+            <Row key={`${row.rank}-${row.name}`} row={row} index={i} prize={data?.prizes[row.rank - 1]} />
           ))}
         </div>
       )}
@@ -146,7 +163,25 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
       {youOutsideTop && (
         <div style={{ display: 'grid', gap: 8 }}>
           <p className="eyebrow">Your position</p>
-          <Row row={youOutsideTop} index={0} />
+          <Row row={youOutsideTop} index={0} prize={data?.prizes[youOutsideTop.rank - 1]} />
+        </div>
+      )}
+
+      {data?.lastWeek && data.lastWeek.winners.length > 0 && (
+        <div className="card">
+          <p className="eyebrow">Last week’s winners</p>
+          <div style={{ display: 'grid', gap: 6, marginTop: 10 }}>
+            {data.lastWeek.winners.slice(0, 5).map((winner) => (
+              <div key={winner.rank} className="row" style={{ fontSize: '0.9rem' }}>
+                <span style={{ fontWeight: 700 }}>
+                  {winner.rank}. {winner.isYou ? 'You' : winner.name}
+                </span>
+                <span className="num" style={{ color: 'var(--faint)' }}>
+                  {winner.score.toLocaleString()} · <strong style={{ color: 'var(--ink)' }}>{formatG(winner.prize)} G$</strong>
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </>

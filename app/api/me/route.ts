@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { toSnapshot } from '@/lib/server/player';
-import { getSessionPlayer } from '@/lib/server/session';
+import { guestSnapshot, toSnapshot } from '@/lib/server/player';
+import { findSessionPlayer, getSessionPlayer } from '@/lib/server/session';
 
 export async function GET() {
-  const player = await getSessionPlayer();
-  return NextResponse.json(toSnapshot(player));
+  const player = await findSessionPlayer();
+  return NextResponse.json(player ? toSnapshot(player) : guestSnapshot());
 }
 
 export async function PATCH(request: Request) {

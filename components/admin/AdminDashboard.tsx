@@ -11,6 +11,7 @@ type PlayerRow = {
   bestScore: number;
   totalScore: number;
   earnedMilli: number;
+  banned: boolean;
   createdAt: string;
 };
 
@@ -20,7 +21,8 @@ type RoundRow = {
   startedAt: string;
   finishedAt: string | null;
   score: number | null;
-  rewardMilli: number;
+  weekKey: string | null;
+  flagged: string | null;
   txHash: string | null;
   player: { id: string; name: string; address: string | null };
 };
@@ -143,12 +145,12 @@ export function AdminDashboard() {
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
-                <tr><th>Player</th><th>Wallet</th><th>Games</th><th>Best score</th><th>G$ earned</th><th>Joined</th></tr>
+                <tr><th>Player</th><th>Wallet</th><th>Games</th><th>Best score</th><th>Prizes won (G$)</th><th>Joined</th></tr>
               </thead>
               <tbody>
                 {(listing.rows as PlayerRow[]).map((player) => (
                   <tr key={player.id}>
-                    <td><strong>{player.name || 'Unnamed player'}</strong><small>{shortId(player.id)}</small></td>
+                    <td><strong>{player.name || 'Unnamed player'}</strong>{player.banned && <span className={styles.badge}> Banned</span>}<small>{shortId(player.id)}</small></td>
                     <td>{shortAddress(player.address)}</td>
                     <td>{player.gamesPlayed.toLocaleString()}</td>
                     <td>{player.bestScore.toLocaleString()}</td>
@@ -165,15 +167,15 @@ export function AdminDashboard() {
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
-                <tr><th>Player</th><th>Mode</th><th>Score</th><th>G$ reward</th><th>Started</th><th>Transaction</th></tr>
+                <tr><th>Player</th><th>Mode</th><th>Score</th><th>Bot check</th><th>Started</th><th>Transaction</th></tr>
               </thead>
               <tbody>
                 {(listing.rows as RoundRow[]).map((round) => (
                   <tr key={round.id}>
                     <td><strong>{round.player.name || shortAddress(round.player.address)}</strong><small>{shortId(round.player.id)}</small></td>
-                    <td><span className={round.ranked ? styles.badgeRanked : styles.badge}>{round.ranked ? 'Ranked' : 'Free'}</span></td>
+                    <td><span className={round.ranked ? styles.badgeRanked : styles.badge}>{round.ranked ? 'Tournament' : 'Practice'}</span></td>
                     <td>{scoreText(round.score)}</td>
-                    <td>{(round.rewardMilli / 1000).toFixed(3)}</td>
+                    <td>{round.flagged ? <span className={styles.badge}>Flagged: {round.flagged}</span> : '—'}</td>
                     <td>{dateTime(round.startedAt)}</td>
                     <td>{round.txHash ? `${round.txHash.slice(0, 8)}…${round.txHash.slice(-6)}` : '—'}</td>
                   </tr>

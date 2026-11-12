@@ -23,6 +23,33 @@ function liveDemoStreak(player: Player) {
   return days <= 1 ? player.demoStreak : 0;
 }
 
+/** A visitor without a saved player yet: everything at its starting value. */
+export function guestSnapshot(): PlayerSnapshot {
+  const now = new Date();
+  return toSnapshot({
+    id: '',
+    address: null,
+    identityRoot: null,
+    name: '',
+    email: '',
+    bestScore: 0,
+    weekKey: '',
+    weeklyBest: 0,
+    gamesPlayed: 0,
+    totalScore: 0,
+    roundsDay: '',
+    roundsUsed: 0,
+    earnedMilli: 0,
+    banned: false,
+    demoBalance: 25,
+    demoPurchases: '[]',
+    demoLastClaim: null,
+    demoStreak: 0,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
 export function toSnapshot(player: Player): PlayerSnapshot {
   return {
     id: player.id,
@@ -37,6 +64,7 @@ export function toSnapshot(player: Player): PlayerSnapshot {
     roundsLeft: Math.max(0, MAX_ROUNDS_PER_DAY - roundsUsedToday(player)),
     maxRounds: MAX_ROUNDS_PER_DAY,
     earned: player.earnedMilli / 1000,
+    banned: player.banned,
     demo: {
       balance: Number(player.demoBalance.toFixed(2)),
       purchases: parsePurchases(player.demoPurchases),

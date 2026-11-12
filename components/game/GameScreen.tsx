@@ -8,12 +8,11 @@ import { useShallow } from 'zustand/react/shallow';
 import { Mascot } from '@/components/game/Mascot';
 import { FailBubble, SadBubble } from '@/components/game/SadBubble';
 import { SKIN_COLORS, TokenArt } from '@/components/game/TokenArt';
-import { onChainMode } from '@/lib/chain/config';
-import { formatG } from '@/lib/format';
 import { ARENA_WIDTH, STARTING_LIVES, levelStartsAt, nextLevelAt, swayX, worldForLevel } from '@/lib/game-rules';
 import { useGameStore, type Pop } from '@/lib/game-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { toast } from '@/lib/toast-store';
+import { tournamentsEnabled } from '@/lib/chain/config';
 
 const pct = (value: number, of: number) => `${(value / of) * 100}%`;
 
@@ -396,7 +395,7 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
                 <div className="result-mascot">
                   <Mascot mood={game.mascot.mood} line={game.mascot.line} at={game.mascot.at} size={96} side="right" />
                 </div>
-                <p className="eyebrow">{result.ranked ? 'Prize game' : 'Free play'}</p>
+                <p className="eyebrow">{!tournamentsEnabled ? 'Your score' : result.ranked ? 'Tournament game' : 'Practice'}</p>
                 <div className="title-xl num" style={{ fontSize: '3.4rem' }}>
                   {result.score.toLocaleString()}
                 </div>
@@ -409,9 +408,8 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
                       <Trophy size={12} /> New best!
                     </span>
                   )}
-                  {result.reward > 0 && <span className="badge badge-mint">+{formatG(result.reward, 3)} G$</span>}
+                  {result.rank && <span className="badge badge-mint">#{result.rank} this week</span>}
                   {result.xpGained ? <span className="badge">+{result.xpGained} XP</span> : null}
-                  {result.ranked && result.reward === 0 && onChainMode && !player?.address && <span className="badge">Connect a wallet to win G$</span>}
                   {result.offline && <span className="badge badge-coral">Not saved: no internet</span>}
                   {result.rejected && <span className="badge badge-coral">This score didn’t count</span>}
                 </div>
@@ -425,7 +423,7 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
                   </div>
                 )}
                 <button type="button" className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={begin}>
-                  <Play size={18} fill="currentColor" /> {roundsLeft > 0 ? `Play again · ${roundsLeft} left` : 'Play for fun'}
+                  <Play size={18} fill="currentColor" /> {!tournamentsEnabled ? 'Play again' : roundsLeft > 0 ? `Play again · ${roundsLeft} left` : 'Practice'}
                 </button>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   <button type="button" className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={exit}>

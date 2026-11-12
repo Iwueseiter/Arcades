@@ -261,3 +261,41 @@ export function msUntilWeekReset(now = new Date()) {
   next.setUTCDate(next.getUTCDate() + (8 - day));
   return next.getTime() - now.getTime();
 }
+
+const BOT_MIN_TAPS = 60;
+const BOT_FAST_TAP_MS = 90;
+
+/**
+ * A conservative check for automated play, run on logs that already passed replayRound. People tap
+ * clusters quickly now and then, but a script tends to tap far faster, or with a metronome's rhythm.
+ * Returns why the log looks automated, or null when it looks human.
+ */
+export function botSignal(log: TapLogEntry[]): string | null {
+  const taps = log.filter((entry) => entry.kind !== 'miss');
+  if (taps.length < BOT_MIN_TAPS) return null;
+
+  const gaps: number[] = [];
+  for (let i = 1; i < taps.length; i += 1) gaps.push(taps[i].t - taps[i - 1].t);
+
+  const fast = gaps.filter((gap) => gap < BOT_FAST_TAP_MS).length;
+  if (fast / gaps.length > 0.4) return 'too many instant taps';
+
+  const mean = gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
+  const spread = Math.sqrt(gaps.reduce((sum, gap) => sum + (gap - mean) ** 2, 0) / gaps.length);
+  if (mean > 0 && spread / mean < 0.08) return 'perfectly even timing';
+
+  return null;
+}
+
+/**
+ * The contracts' week number for an ISO week key: weeks since 1970, starting Mondays 00:00 UTC.
+ * Matches XurriTournaments.currentWeek().
+ */
+export function weekIndexFor(weekKey: string) {
+  const [year, week] = weekKey.split('-W').map(Number);
+  // ISO week 1 is the week with January 4th in it.
+  const jan4 = Date.UTC(year, 0, 4);
+  const jan4Weekday = new Date(jan4).getUTCDay() || 7;
+  const monday = jan4 - (jan4Weekday - 1) * 86400_000 + (week - 1) * 7 * 86400_000;
+  return Math.floor((monday / 1000 + 3 * 86400) / (7 * 86400));
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { Logo } from '@/components/brand/Logo';
@@ -30,7 +31,7 @@ export function hasBeenWelcomed() {
   }
 }
 
-/** Sign-in screen: pick a name and play, or connect a wallet to win real G$. */
+/** Sign-in screen: pick a name and play, or connect a wallet to claim free daily G$. */
 export function Welcome({ onDone, standalone = false }: { onDone: () => void; standalone?: boolean }) {
   const player = usePlayerStore((s) => s.player);
   const refresh = usePlayerStore((s) => s.refresh);
@@ -115,7 +116,10 @@ export function Welcome({ onDone, standalone = false }: { onDone: () => void; st
           ) : (
             <ConnectButton block label="Connect wallet" />
           )}
-          <p className="welcome-note">Connect a wallet to win real G$. No wallet? You can still play for fun.</p>
+          <p className="welcome-note">
+            Connect a wallet for free daily G$. No wallet? You can still play. By playing you
+            agree to our <Link href="/terms">terms</Link> and <Link href="/privacy">privacy</Link> notes.
+          </p>
         </form>
       </div>
     </div>

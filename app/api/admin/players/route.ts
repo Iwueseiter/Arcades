@@ -34,6 +34,7 @@ export async function GET(request: Request) {
         bestScore: true,
         totalScore: true,
         earnedMilli: true,
+        banned: true,
         createdAt: true,
       },
     }),

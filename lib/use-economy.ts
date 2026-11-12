@@ -17,17 +17,17 @@ export function useOwnedItems(): string[] {
   return (onChainMode ? chainOwned : demoOwned) ?? [];
 }
 
-/** Unclaimed game rewards on-chain (earned server-side minus redeemed). */
-export function usePendingGameRewards(): number {
+/** Tournament prizes won but not yet collected on-chain (won server-side minus collected). */
+export function usePendingPrizes(): number {
   const earned = usePlayerStore((s) => s.player?.earned ?? 0);
-  const claimed = useWalletStore((s) => s.chainState?.rewardsClaimed ?? 0);
+  const claimed = useWalletStore((s) => s.chainState?.prizesClaimed ?? 0);
   return Math.max(0, Number((earned - claimed).toFixed(3)));
 }
 
 export function useHasClaimableReward(): boolean {
   const demoClaimed = usePlayerStore((s) => s.player?.demo.claimedToday ?? true);
   const canClaimDaily = useWalletStore((s) => s.chainState?.canClaimDaily ?? false);
-  const pending = usePendingGameRewards();
+  const pending = usePendingPrizes();
   if (!onChainMode) return !demoClaimed;
   return canClaimDaily || pending > 0;
 }

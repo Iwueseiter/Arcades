@@ -30,3 +30,18 @@ This document captures the assumptions made while building the first phase of Xu
 - Rounds are server-issued. The server replays the tap log to compute the score and rejects logs that are impossible for the spawn rate. A determined bot could still fabricate a plausible log, which is why per-round and per-day caps exist and why the GoodDollar Identity gate is available.
 - Without a contract address the app runs in demo mode with an off-chain balance, so it stays playable before launch.
 - Five ranked rounds per day; after that, practice rounds that neither rank nor earn.
+
+## Phase 3: tournaments and split contracts (Nov 2026)
+
+- Players earn G$ only from daily claims (GoodDollar UBI and the Xurri gift) and the weekly tournament. Games never pay per round, so there is nothing to farm round by round.
+- The single `XurriArcade` became three contracts, each holding only its own money:
+  - `XurriDailyGift`: the gift fund;
+  - `XurriTournaments`: games, the prize pot and prize tickets;
+  - `XurriShop`: holds nothing.
+
+  A bug or leaked key in one can't drain another.
+- `Ownable2Step` became roles. The admin is a Safe, and handing admin over waits 2 days. The operator only changes settings, within caps fixed in code. The pauser can only pause, so a team member can stop a problem without being able to move money.
+- Limits are per person (GoodDollar identity root), not per wallet: daily gift, games per day and tournament rankings. Several connected wallets no longer multiply rewards.
+- Anyone can boost a week's prize pot, and prizes grow in proportion. 10% of boosts and shop sales goes to GoodDollar's UBIScheme; the rest of a shop sale goes to the prize pot.
+- GoodCollective pools were considered for the prize pot, but their contract interface isn't documented well enough to integrate safely. The UBI share goes to the same UBIScheme address GoodCollective sends its fee to.
+- Referral bonuses and G$ duels were left out: both would add ways to earn beyond daily claims and tournaments.

@@ -1,115 +1,101 @@
 # Xurri
 
-Pop treats, build streaks, win G$. A bright tap game for phones (made with MiniPay in mind), paying GoodDollar (G$) on Celo.
+Pop treats, build streaks, climb the weekly board. A bright tap game for phones, on Celo with GoodDollar (G$).
 
-- **App:** Next.js 16 (`app/`, `components/`, `lib/`)
-- **Contract:** `XurriArcade` in `contracts/` (Foundry): daily gift, game prizes, invites and the shop, all paid in G$
-- **Fair scores:** the server replays every game's taps, so nobody can just send a fake score
+- **App:** Next.js 16 (`app/`, `components/`, `lib/`), Postgres through Prisma
+- **Contracts:** three small contracts in `contracts/` (Foundry): the daily gift, the tournament (games, prize pot, prizes) and the shop
+- **Fair scores:** the server replays every game's taps, flags play that looks automated, and counts each real person once
+
+## How G$ moves
+
+Players **earn** G$ in only two ways:
+
+1. **Daily claims.** GoodDollar's own daily claim (UBI), right inside the app, plus the Xurri daily gift, which grows with a streak.
+2. **The weekly tournament.** Each person's best tournament score of the week (Monday to Sunday, UTC) counts. The top 10 win G$. Prizes go out 24 hours after the week ends, once the top scores are checked.
+
+Players **use** G$ in two ways, and both fund GoodDollar's UBI pool:
+
+1. **Boost the prize pot.** Anyone (players, sponsors, donors) can add G$ to this week's pot. Every prize grows in proportion.
+2. **The shop.** Cosmetic items.
+
+From every boost and purchase, 10% goes to GoodDollar's UBIScheme, the pool that pays everyone's daily claim. The rest goes into the prize pot, so spending flows back to players as prizes.
 
 ```
-Player ──plays──▶ Xurri app ──▶ server checks the game, adds up the player's G$ prizes
-   │                        └──▶ server signs a "prize ticket" for the total won so far
-   └──wallet──▶ XurriArcade (Celo) ── claimDaily · claimRewards(ticket) · buyItem · setReferrer
+                      ┌──────────────────── XurriDailyGift ── claim(): 1 G$/day + streak
+Player ── wallet ─────┼──────────────────── GoodDollar UBIScheme ── claim(): free daily G$
+                      ├── startGame() ────┐
+                      ├── boost(G$) ──────┤ XurriTournaments ── 10% ─▶ GoodDollar UBI pool
+                      ├── claimPrizes() ◀─┘   (prize pot)
+                      └── buy(item) ───── XurriShop ── 90% ─▶ prize pot, 10% ─▶ UBI pool
+
+Xurri server: replays taps · ranks the week · signs prize tickets · settles hourly
 ```
 
-Without a contract address the app runs in **test mode**: everything works with play money, no wallet needed.
+Games themselves never pay. Practice games are free and need no wallet. Without contract addresses the app runs in **test mode**, with play money.
+
+Live numbers for players, retention and G$ flows are on **`/stats`** (JSON at `/api/stats`).
+
+## GoodDollar integrations
+
+| GoodBuilders option | In Xurri |
+| --- | --- |
+| Face verification + UBI claim button | The GoodDollar daily claim is on the home and Rewards screens, with a link to the face check |
+| Identity SDK, used meaningfully | Only verified people can enter tournaments or claim gifts. Wallets connected to one GoodDollar identity count as one person (daily gift, game limits, rankings) |
+| UBI Pool fees | 10% of all G$ spent in Xurri (pot boosts and shop) goes to GoodDollar's UBIScheme |
 
 ## Run it locally
 
-Use Node 22.13+ LTS or Node 24+. Node runs the Next.js server on Windows; iPhone users access the responsive app in Safari or MiniPay. Node.js itself does not run natively on iOS.
+Needs Node 22.13+ (or 24+) and Docker.
 
 ```bash
 npm install
-npm run db:push    # creates the local database (prisma/goodtap.db)
-npm run dev        # http://localhost:3000
+cp .env.example .env     # then fill in what you need
+docker compose up -d     # local Postgres
+npm run db:migrate       # create the tables
+npm run dev              # http://localhost:3000
 ```
 
-## The contract
-
-`contracts/src/XurriArcade.sol` (Solidity 0.8.30, OpenZeppelin 5.4) holds a pot of G$ and pays from it:
-
-| What | How |
-| --- | --- |
-| Daily gift | `claimDaily()` once a day. 1 G$ plus 0.2 G$ for each day in a row (up to 7 extra days). |
-| Game prizes | The server signs a ticket for everything a player has won so far. `claimRewards` pays only the new part, so a ticket can't be used twice. |
-| Daily limit | Game prizes are capped per day (500 G$ by default) to limit damage if the server key ever leaks. |
-| Invites | `setReferrer(friend)` before your first gift; the friend gets 3 G$ when you open it. |
-| Shop | `buyItem(id)` takes the price in G$ (after an approval). Money spent goes back into the prize pot. |
-| Real people only | Optional GoodDollar face check (`GD_IDENTITY`). |
-| Safety | Two-step ownership, pause switch, re-entry guard, owner can move funds out. |
+Checks:
 
 ```bash
-npm run contracts:install   # first time only
-npm run contracts:test      # 16 tests
+npm run typecheck && npm run lint
+npm test                 # needs the Postgres above (uses DATABASE_URL)
+npm run contracts:test   # 21 contract tests, including a fuzz test
 ```
+
+CI runs all of these, and the build, on every pull request (`.github/workflows/ci.yml`).
+
+## The contracts
+
+Solidity 0.8.30, OpenZeppelin 5.4. Each contract holds only its own money, so a problem in one can't drain another.
+
+| Contract | Does | Holds |
+| --- | --- | --- |
+| `XurriDailyGift` | `claim()` once a day per person: 1 G$ + 0.2 G$ per day in a row (up to 7). The operator can never raise it past the 5 G$ cap fixed at deploy. | The gift fund |
+| `XurriTournaments` | `startGame()` (5 a day per person), `boost(amount)` for the prize pot, `claimPrizes(ticket)` for winners. Tickets are cumulative and payouts are capped per day (500 G$), which limits the damage if the signer key ever leaks. | The prize pot |
+| `XurriShop` | `buy(item)`, splitting each purchase between the prize pot and the UBI pool | Nothing |
+
+Shared roles (`contracts/src/base/XurriBase.sol`):
+
+| Role | Who | Can |
+| --- | --- | --- |
+| Admin | A Safe multisig | Move money, change the signer, the identity contract or the UBI address, raise the payout limit, unpause, manage roles. Handing admin over takes a 2-day wait. |
+| Operator | The Safe (or a team key later) | Set shop prices, the daily gift (under its cap) and games per day |
+| Pauser | A fast-reacting team key | Pause only. It can't unpause or move money. |
+
+## Dashboards
+
+- **`/stats`**: public numbers for players and grant reviewers: weekly retention, verified people, G$ claimed, paid, spent and sent to UBI, and the contract links.
+- **`/analytics`**: the team's traffic dashboard (page views, active players, daily trends, lifetime on-chain totals from the contracts' events). It refreshes every 30 seconds. On-chain totals need `XURRI_DEPLOY_BLOCK`.
+- **`/admin`**: protected player and game directory, with tournament games' bot-check flags. Sign in with `XURRI_ADMIN_EMAIL` and `XURRI_ADMIN_PASSWORD` (16+ characters). The tournament review and ban API (`/api/admin/tournament`, `/api/admin/ban`) accepts that login or `XURRI_ADMIN_SECRET` for scripts.
 
 ## Deploying
 
-### 1. Make two keys
-
-```bash
-cast wallet new   # deployer: needs ~2 CELO for gas
-cast wallet new   # prize signer: holds nothing, only signs prize tickets
-```
-
-### 2. Fill in `contracts/.env`
-
-Copy `contracts/.env.example` to `contracts/.env` and set:
-
-- `PRIVATE_KEY`: the deployer key
-- `VOUCHER_SIGNER`: the prize signer's **address**
-- `CELOSCAN_API_KEY`: from etherscan.io (one key works for Celo too), used to publish the source code
-- optional: `OWNER` (e.g. a Safe), `TREASURY`, `GD_IDENTITY` (check the GoodDollar docs for the Celo Identity address first)
-
-### 3. Rehearse on the testnet (recommended)
-
-Get free test CELO from the Celo faucet, then:
-
-```bash
-npm run contracts:test-token      # makes a test G$; put its address in GD_TOKEN
-npm run contracts:deploy:testnet  # deploys XurriArcade to Celo Sepolia
-```
-
-Point the app at it with `NEXT_PUBLIC_CHAIN_ID=11142220` and play a few games.
-
-### 4. Go live on Celo mainnet
-
-Set `GD_TOKEN=0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A` (real G$), then:
-
-```bash
-npm run contracts:simulate   # dry run, sends nothing
-npm run contracts:deploy     # deploys and publishes the source on Celoscan
-```
-
-If you set `OWNER`, that address must call `acceptOwnership()` afterwards.
-
-### 5. Fill the prize pot
-
-Send G$ to the deployed contract address. Plan for roughly `players × (daily gift + game prizes)` per day.
-
-### 6. Connect the app
-
-Set these where the app is hosted, then rebuild:
-
-| Setting | Value |
-| --- | --- |
-| `NEXT_PUBLIC_ARCADE_ADDRESS` | the deployed `XurriArcade` address |
-| `XURRI_SIGNER_PRIVATE_KEY` | the prize signer's private key |
-| `XURRI_SESSION_SECRET` | any random 32+ characters (`openssl rand -hex 32`) |
-| `DATABASE_URL` | a hosted Postgres on serverless hosts (change `provider` in `prisma/schema.prisma`) |
+Step by step in **[DEPLOY.md](DEPLOY.md)**. After launch, follow [RUNBOOK.md](RUNBOOK.md).
 
 ## Scripts
 
 - `npm run dev` / `build` / `start`: the app
-- `npm run lint`, `npm run typecheck`
-- `npm run db:push`: update the database tables
-- `npm run contracts:test` / `contracts:simulate` / `contracts:deploy`
-
-## Team dashboards
-
-- `/analytics` is a public aggregate dashboard that refreshes every 30 seconds; `/admin` is the separate, protected player and game-round directory.
-- Configure `XURRI_ADMIN_EMAIL` and a unique `XURRI_ADMIN_PASSWORD` of at least 16 characters on the server for `/admin`. Admin sessions are signed, HTTP-only cookies and expire after eight hours.
-- Run `npm run db:push` after adding the analytics tables.
-- On-chain transaction and payout totals require `NEXT_PUBLIC_ARCADE_ADDRESS` and the decimal `XURRI_ARCADE_DEPLOY_BLOCK`. The analytics screen indexes Xurri arcade contract history in batches; it counts Xurri's daily, game and referral payouts, not claims made directly through GoodDollar's UBI contract.
-- First-party page-view tracking starts after this version is deployed; historical traffic is not available.
-- Analytics exposes only aggregate counts publicly; do not add personally identifying details to its response.
+- `npm run lint`, `npm run typecheck`, `npm test`
+- `npm run db:migrate`: apply database migrations; `npm run db:push`: quick schema sync for local experiments
+- `npm run contracts:test` / `contracts:test-token` / `contracts:deploy:testnet` / `contracts:simulate` / `contracts:deploy`

@@ -10,8 +10,9 @@ export type PlayerSnapshot = {
   totalScore: number;
   roundsLeft: number;
   maxRounds: number;
-  /** Total G$ earned from ranked rounds (wallet players only). */
+  /** Total G$ won in tournaments (wallet players only). */
   earned: number;
+  banned: boolean;
   demo: {
     balance: number;
     purchases: string[];
@@ -31,8 +32,16 @@ export type LeaderboardRow = {
 export type LeaderboardResponse = {
   weekKey: string;
   resetsInMs: number;
+  /** G$ for each place this week, first place first, including what's been boosted in. */
+  prizes: number[];
+  /** This week's pot: the base prizes plus G$ added by players and sponsors. */
+  pot: { total: number; boosted: number };
   rows: LeaderboardRow[];
   you: LeaderboardRow | null;
+  lastWeek: {
+    weekKey: string;
+    winners: { rank: number; name: string; score: number; prize: number; isYou: boolean }[];
+  } | null;
 };
 
 export type RoundStartResponse = {
@@ -45,7 +54,8 @@ export type RoundStartResponse = {
 export type RoundFinishResponse = {
   score: number;
   ranked: boolean;
-  reward: number;
+  /** This week's tournament place after the round, when it counted. */
+  rank: number | null;
   newBest: boolean;
   player: PlayerSnapshot;
 };

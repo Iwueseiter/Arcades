@@ -12,7 +12,7 @@ export function ConnectButton({ block = false, label = 'Connect wallet' }: { blo
   const onClick = async () => {
     try {
       await connect();
-      toast.success('Wallet connected', 'Your games can now win G$.');
+      toast.success('Wallet connected', 'You can now claim your free daily G$.');
     } catch (error) {
       toast.error('Couldn’t connect', describeError(error));
     }
@@ -20,7 +20,7 @@ export function ConnectButton({ block = false, label = 'Connect wallet' }: { blo
 
   if (!hasProvider) {
     return (
-      <a className={`btn btn-ghost ${block ? 'btn-block' : 'btn-sm'}`} href="https://www.opera.com/products/minipay" target="_blank" rel="noreferrer">
+      <a className={`btn btn-ghost ${block ? 'btn-block' : 'btn-sm'}`} href="https://wallet.gooddollar.org" target="_blank" rel="noreferrer">
         <Wallet size={18} /> Get a wallet
       </a>
     );
