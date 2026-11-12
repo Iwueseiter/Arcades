@@ -1,73 +1,106 @@
-# GoodTap
+# Xurri
 
-A neon arcade tap game on Celo. Catch coins, build combos, climb the weekly leaderboard and earn GoodDollar (G$).
+Pop treats, build streaks, win G$. A bright tap game for phones (made with MiniPay in mind), paying GoodDollar (G$) on Celo.
 
-- **Next.js 16** app (mobile-first, works great inside MiniPay)
-- **GoodTapArcade** smart contract (Foundry) that pays G$ for daily check-ins, game rewards and referrals, and runs the shop
-- Server-validated rounds: the server replays every round's tap log, so a client can't just report a score
-
-## How it fits together
+- **App:** Next.js 16 (`app/`, `components/`, `lib/`)
+- **Contract:** `XurriArcade` in `contracts/` (Foundry): daily gift, game prizes, invites and the shop, all paid in G$
+- **Fair scores:** the server replays every game's taps, so nobody can just send a fake score
 
 ```
-Player ──plays──▶ Next.js app ──/api/game/*──▶ server replays the tap log, credits G$ earnings (DB)
-   │                                     └──/api/rewards/voucher──▶ signs an EIP-712 voucher for cumulative earnings
-   └──wallet tx──▶ GoodTapArcade (Celo) ── claimDaily / claimRewards(voucher) / buyItem / setReferrer
+Player ──plays──▶ Xurri app ──▶ server checks the game, adds up the player's G$ prizes
+   │                        └──▶ server signs a "prize ticket" for the total won so far
+   └──wallet──▶ XurriArcade (Celo) ── claimDaily · claimRewards(ticket) · buyItem · setReferrer
 ```
 
-Without `NEXT_PUBLIC_ARCADE_ADDRESS` the app runs in **demo mode**: everything works with an off-chain balance, no wallet needed.
+Without a contract address the app runs in **test mode**: everything works with play money, no wallet needed.
 
-## Quick start (demo mode)
+## Run it locally
 
-Requires Node 22.12+.
+Needs Node 22.12+ (22.10 works too; the scripts add the flag it needs).
 
 ```bash
 npm install
-npm run db:push        # creates prisma/goodtap.db
-npm run dev            # http://localhost:3000
+npm run db:push    # creates the local database (prisma/goodtap.db)
+npm run dev        # http://localhost:3000
 ```
 
-## Smart contract
+## The contract
 
-`contracts/src/GoodTapArcade.sol` (Solidity 0.8.30, OpenZeppelin 5.4):
+`contracts/src/XurriArcade.sol` (Solidity 0.8.30, OpenZeppelin 5.4) holds a pot of G$ and pays from it:
 
-| Feature | How it works |
+| What | How |
 | --- | --- |
-| Daily check-in | `claimDaily()` once per UTC day. 1 G$ + 0.2 G$ per streak day (bonus caps after 7 days). |
-| Game rewards | Backend signs `RewardVoucher(player, cumulativeAmount, deadline)`. `claimRewards` pays the difference since last claim, so replays pay nothing. |
-| Daily budget | Total voucher payouts per day are capped (500 G$ by default), limiting damage if the signer key leaks. |
-| Referrals | `setReferrer(addr)` before your first claim; the referrer gets 3 G$ on that first claim. |
-| Shop | `buyItem(id)` pulls the G$ price (needs approval). Revenue goes to the treasury, which defaults to the contract itself, so purchases refill the reward pool. |
-| Sybil resistance | Optional GoodDollar Identity check (`isWhitelisted`) on claims. Set `GD_IDENTITY` at deploy or later via `setIdentity`. |
-| Safety | Ownable2Step, Pausable, ReentrancyGuard, SafeERC20, owner `withdraw` for pool migration. |
+| Daily gift | `claimDaily()` once a day. 1 G$ plus 0.2 G$ for each day in a row (up to 7 extra days). |
+| Game prizes | The server signs a ticket for everything a player has won so far. `claimRewards` pays only the new part, so a ticket can't be used twice. |
+| Daily limit | Game prizes are capped per day (500 G$ by default) to limit damage if the server key ever leaks. |
+| Invites | `setReferrer(friend)` before your first gift; the friend gets 3 G$ when you open it. |
+| Shop | `buyItem(id)` takes the price in G$ (after an approval). Money spent goes back into the prize pot. |
+| Real people only | Optional GoodDollar face check (`GD_IDENTITY`). |
+| Safety | Two-step ownership, pause switch, re-entry guard, owner can move funds out. |
 
 ```bash
-npm run contracts:install   # first time only: OpenZeppelin + forge-std
-npm run contracts:test      # 16 tests incl. fuzzing
+npm run contracts:install   # first time only
+npm run contracts:test      # 16 tests
 ```
 
-## Deploying to Celo mainnet
+## Deploying
 
-1. **Create two keys**: a deployer (holds ~3 CELO for gas) and a voucher signer (holds nothing; it only signs).
-   `cast wallet new` works for both.
-2. **Configure** `contracts/.env` from `contracts/.env.example`: `PRIVATE_KEY`, `VOUCHER_SIGNER` (signer *address*), optionally `OWNER` (e.g. a Safe), `TREASURY` and `GD_IDENTITY`.
-   Confirm the GoodDollar Identity address for Celo in the [GoodDollar docs](https://docs.gooddollar.org/for-developers/core-contracts) before setting it.
-3. **Dry run, then deploy & verify**:
-   ```bash
-   cd contracts && source .env
-   forge script script/Deploy.s.sol --rpc-url celo                      # simulation only
-   forge script script/Deploy.s.sol --rpc-url celo --broadcast --verify # needs CELOSCAN_API_KEY
-   ```
-   If you set `OWNER`, that address must call `acceptOwnership()`.
-4. **Fund the pool** by sending G$ to the deployed address. Budget roughly `players × (daily reward + game rewards)` per day.
-5. **Point the app at it** (in your host's env settings):
-   `NEXT_PUBLIC_ARCADE_ADDRESS`, `GOODTAP_SIGNER_PRIVATE_KEY`, `GOODTAP_SESSION_SECRET`, then rebuild.
-6. **Production database**: SQLite is fine on a single long-running server. On serverless hosts (Vercel etc.) switch `provider` in `prisma/schema.prisma` to `postgresql` and set `DATABASE_URL`.
+### 1. Make two keys
 
-Tip: deploy to Celo Sepolia first (`--rpc-url celo_sepolia`, `NEXT_PUBLIC_CHAIN_ID=11142220`) with a test token.
+```bash
+cast wallet new   # deployer: needs ~2 CELO for gas
+cast wallet new   # prize signer: holds nothing, only signs prize tickets
+```
+
+### 2. Fill in `contracts/.env`
+
+Copy `contracts/.env.example` to `contracts/.env` and set:
+
+- `PRIVATE_KEY`: the deployer key
+- `VOUCHER_SIGNER`: the prize signer's **address**
+- `CELOSCAN_API_KEY`: from etherscan.io (one key works for Celo too), used to publish the source code
+- optional: `OWNER` (e.g. a Safe), `TREASURY`, `GD_IDENTITY` (check the GoodDollar docs for the Celo Identity address first)
+
+### 3. Rehearse on the testnet (recommended)
+
+Get free test CELO from the Celo faucet, then:
+
+```bash
+npm run contracts:test-token      # makes a test G$; put its address in GD_TOKEN
+npm run contracts:deploy:testnet  # deploys XurriArcade to Celo Sepolia
+```
+
+Point the app at it with `NEXT_PUBLIC_CHAIN_ID=11142220` and play a few games.
+
+### 4. Go live on Celo mainnet
+
+Set `GD_TOKEN=0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A` (real G$), then:
+
+```bash
+npm run contracts:simulate   # dry run, sends nothing
+npm run contracts:deploy     # deploys and publishes the source on Celoscan
+```
+
+If you set `OWNER`, that address must call `acceptOwnership()` afterwards.
+
+### 5. Fill the prize pot
+
+Send G$ to the deployed contract address. Plan for roughly `players × (daily gift + game prizes)` per day.
+
+### 6. Connect the app
+
+Set these where the app is hosted, then rebuild:
+
+| Setting | Value |
+| --- | --- |
+| `NEXT_PUBLIC_ARCADE_ADDRESS` | the deployed `XurriArcade` address |
+| `XURRI_SIGNER_PRIVATE_KEY` | the prize signer's private key |
+| `XURRI_SESSION_SECRET` | any random 32+ characters (`openssl rand -hex 32`) |
+| `DATABASE_URL` | a hosted Postgres on serverless hosts (change `provider` in `prisma/schema.prisma`) |
 
 ## Scripts
 
 - `npm run dev` / `build` / `start`: the app
 - `npm run lint`, `npm run typecheck`
-- `npm run db:push`: sync the Prisma schema
-- `npm run contracts:test`: Foundry tests
+- `npm run db:push`: update the database tables
+- `npm run contracts:test` / `contracts:simulate` / `contracts:deploy`

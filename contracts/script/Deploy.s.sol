@@ -4,9 +4,9 @@ pragma solidity ^0.8.24;
 import {Script, console2} from "forge-std/Script.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {GoodTapArcade, IIdentity} from "../src/GoodTapArcade.sol";
+import {XurriArcade, IIdentity} from "../src/XurriArcade.sol";
 
-/// @notice Deploys GoodTapArcade and registers the shop catalogue.
+/// @notice Deploys XurriArcade and registers the shop catalogue.
 ///
 ///   forge script script/Deploy.s.sol --rpc-url celo --broadcast --verify
 ///
@@ -16,7 +16,7 @@ contract Deploy is Script {
     string[4] internal ITEM_SLUGS = ["starter-pack", "combo-boost", "lucky-capsule", "vip-pass"];
     uint128[4] internal ITEM_PRICES = [5, 12, 18, 25];
 
-    function run() external returns (GoodTapArcade arcade) {
+    function run() external returns (XurriArcade arcade) {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
         address token = vm.envAddress("GD_TOKEN");
@@ -28,7 +28,7 @@ contract Deploy is Script {
         uint256 unit = 10 ** IERC20Metadata(token).decimals();
 
         vm.startBroadcast(deployerKey);
-        arcade = new GoodTapArcade(
+        arcade = new XurriArcade(
             IERC20(token),
             IIdentity(identity),
             signer,
@@ -45,12 +45,15 @@ contract Deploy is Script {
             arcade.setItem(keccak256(bytes(ITEM_SLUGS[i])), uint128(ITEM_PRICES[i] * unit), true);
         }
 
+        // Prize games cost only gas unless PLAY_FEE (in wei of CELO) is set.
+        arcade.setPlayConfig(vm.envOr("PLAY_FEE", uint256(0)), uint32(vm.envOr("MAX_PLAYS_PER_DAY", uint256(5))));
+
         if (finalOwner != deployer) {
             arcade.transferOwnership(finalOwner); // Ownable2Step: new owner must call acceptOwnership()
         }
         vm.stopBroadcast();
 
-        console2.log("GoodTapArcade deployed at", address(arcade));
+        console2.log("XurriArcade deployed at", address(arcade));
         console2.log("Fund the reward pool by sending G$ to that address.");
     }
 }

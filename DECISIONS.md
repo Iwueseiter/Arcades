@@ -1,6 +1,6 @@
-# GoodTap product decisions
+# Xurri product decisions
 
-This document captures the assumptions made while building the first phase of GoodTap and the implementation choices that keep the app realistic without inventing unsupported blockchain details.
+This document captures the assumptions made while building the first phase of Xurri and the implementation choices that keep the app realistic without inventing unsupported blockchain details.
 
 ## Core assumptions
 
@@ -24,7 +24,7 @@ This document captures the assumptions made while building the first phase of Go
 
 ## Phase 2: on-chain rewards (Nov 2026)
 
-- Rewards run through one contract, `GoodTapArcade`, holding a G$ pool. Daily check-ins are fully on-chain. Game rewards use backend-signed **cumulative** EIP-712 vouchers, so there are no nonces to track and a replayed voucher pays nothing.
+- Rewards run through one contract, `XurriArcade`, holding a G$ pool. Daily check-ins are fully on-chain. Game rewards use backend-signed **cumulative** EIP-712 vouchers, so there are no nonces to track and a replayed voucher pays nothing.
 - A per-day voucher budget on-chain bounds the loss if the signer key is ever compromised. The signer can be rotated with `setSigner`.
 - Every player now has their own server record (signed httpOnly session cookie). Wallets sign in with a signed message; a guest's progress moves to their wallet on first sign-in.
 - Rounds are server-issued. The server replays the tap log to compute the score and rejects logs that are impossible for the spawn rate. A determined bot could still fabricate a plausible log, which is why per-round and per-day caps exist and why the GoodDollar Identity gate is available.

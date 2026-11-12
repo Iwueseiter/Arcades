@@ -10,9 +10,9 @@ import { avatarColor, formatDuration, initials } from '@/lib/format';
 import type { LeaderboardResponse, LeaderboardRow } from '@/lib/types';
 
 const PODIUM = [
-  { place: 2, height: 74, color: '#c7d2fe', bg: 'linear-gradient(180deg, rgba(199,210,254,0.3), rgba(199,210,254,0.06))' },
-  { place: 1, height: 100, color: '#ffc94a', bg: 'linear-gradient(180deg, rgba(255,201,74,0.38), rgba(255,201,74,0.06))' },
-  { place: 3, height: 58, color: '#f0a374', bg: 'linear-gradient(180deg, rgba(240,163,116,0.3), rgba(240,163,116,0.06))' },
+  { place: 2, height: 74, color: '#8aa0b8', bg: 'linear-gradient(180deg, #e6edf5, #d3dde9)' },
+  { place: 1, height: 100, color: '#e6a400', bg: 'linear-gradient(180deg, #fff1b8, #ffd966)' },
+  { place: 3, height: 58, color: '#d27b3e', bg: 'linear-gradient(180deg, #ffe0c7, #f8c49b)' },
 ];
 
 function Row({ row, index }: { row: LeaderboardRow; index: number }) {
@@ -38,7 +38,6 @@ function Row({ row, index }: { row: LeaderboardRow; index: number }) {
 }
 
 export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
-  const [board, setBoard] = useState<'merge' | 'arcade'>('merge');
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -46,14 +45,14 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setData(await (board === 'merge' ? api.mergeLeaderboard() : api.leaderboard()));
+      setData(await api.leaderboard());
       setFailed(false);
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
-  }, [board]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -68,28 +67,12 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
       <div className="card card-hero">
         <div className="row">
           <div>
-            <p className="eyebrow">{board === 'merge' ? 'Jelly Merge · today' : 'Treat Rush · this week'}</p>
-            <h1 className="title-xl">{board === 'merge' ? 'Top mergers' : 'Top tappers'}</h1>
+            <p className="eyebrow">This week</p>
+            <h1 className="title-xl">Top poppers</h1>
           </div>
           <button type="button" className="icon-btn" onClick={load} aria-label="Refresh leaderboard" disabled={loading}>
             <RefreshCw size={17} className={loading ? 'animate-spin' : ''} />
           </button>
-        </div>
-        <div className="segmented" role="tablist" aria-label="Leaderboard">
-          {(['merge', 'arcade'] as const).map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={board === id}
-              onClick={() => {
-                setData(null);
-                setBoard(id);
-              }}
-            >
-              {id === 'merge' ? 'Jelly Merge' : 'Treat Rush'}
-            </button>
-          ))}
         </div>
         {data && (
           <span className="badge" style={{ marginTop: 10 }}>
@@ -137,14 +120,14 @@ export function RanksView({ onNavigate }: { onNavigate: (tab: TabId) => void }) 
       )}
 
       {failed && !data && (
-        <div className="notice warn">Couldn’t load the leaderboard. Check your connection and tap refresh.</div>
+        <div className="notice warn">Couldn’t load the scores. Check your internet and tap refresh.</div>
       )}
 
       {data && data.rows.length === 0 && (
         <div className="card" style={{ textAlign: 'center' }}>
-          <p className="title-md">{board === 'merge' ? 'Nobody has solved today’s puzzle yet' : 'No scores yet this week'}</p>
+          <p className="title-md">No scores yet this week</p>
           <p className="copy" style={{ margin: '6px 0 14px' }}>
-            Play a ranked round and claim the top spot.
+            Play a prize game and take the top spot.
           </p>
           <button type="button" className="btn btn-primary btn-block" onClick={() => onNavigate('play')}>
             Play now

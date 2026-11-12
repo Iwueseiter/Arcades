@@ -21,6 +21,8 @@ import {
   swayX,
   worldForLevel,
 } from '@/lib/game-rules';
+import { onChainMode } from '@/lib/chain/config';
+import { describeError, useWalletStore } from '@/lib/chain/wallet-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { useProgressStore, type Mission } from '@/lib/progress-store';
 import { vibrate } from '@/lib/settings-store';
@@ -29,6 +31,8 @@ import type { RoundFinishResponse } from '@/lib/types';
 export type RoundStatus = 'idle' | 'starting' | 'countdown' | 'playing' | 'paused' | 'submitting' | 'ended';
 
 export type Pop = { id: number; x: number; y: number; label: string; kind: TokenType | 'miss'; skin?: Skin; size?: number };
+
+export type PlayMode = 'prize' | 'free';
 
 export type MascotMood = 'idle' | 'happy' | 'excited' | 'sad' | 'wow';
 
@@ -65,13 +69,18 @@ type GameState = {
   pops: Pop[];
   shake: number;
   banner: { title: string; subtitle?: string } | null;
+  /** Big celebration word, e.g. "Juicy!". `tier` 1–5 sets its colour and how loud the jingle is. */
+  callout: { text: string; tier: number; at: number } | null;
+  recentTaps: number[];
   mascot: { mood: MascotMood; line: string | null; at: number };
   result: RoundResult | null;
   localBest: number;
+  mode: PlayMode;
 };
 
 type GameActions = {
-  startRound: () => Promise<void>;
+  /** 'prize' sends the on-chain startGame transaction first (when a contract is set up); 'free' never does. */
+  startRound: (mode?: PlayMode) => Promise<void>;
   tick: (deltaMs: number, now: number) => void;
   tapToken: (tokenId: string) => void;
   pause: () => void;
@@ -100,11 +109,32 @@ const roundDefaults = {
   pops: [] as Pop[],
   shake: 0,
   banner: null,
+  callout: null,
+  recentTaps: [] as number[],
   result: null,
 };
 
-const milestoneLabel = (threshold: number) =>
-  threshold === 100 ? 'Nice!' : threshold === 250 ? 'Great!' : threshold === 500 ? 'Amazing!' : threshold === 1000 ? 'Unreal!' : 'Legendary!';
+// Celebration words. Streak words fire at exact streak counts; milestone words when the score crosses a mark.
+const STREAK_WORDS: Record<number, [string, number]> = {
+  5: ['Yummy!', 1],
+  10: ['Juicy!', 2],
+  15: ['Scrumptious!', 2],
+  20: ['Pop-tastic!', 3],
+  30: ['Sugar Rush!', 4],
+  40: ['Unstoppable!', 4],
+  50: ['Treat Legend!', 5],
+};
+
+const MILESTONE_WORDS: Record<number, [string, number]> = {
+  100: ['Lovely!', 2],
+  250: ['Splendid!', 3],
+  500: ['Fantastic!', 3],
+  1000: ['Marvelous!', 4],
+  2000: ['Legendary!', 5],
+  5000: ['Out of this world!', 5],
+};
+
+const QUICK_POP_MS = 900;
 
 const POP_SOUND: Partial<Record<Skin, SoundEventName>> = {
   coin: 'pop-coin',
@@ -123,6 +153,13 @@ export const useGameStore = create<GameState & GameActions>()(
   persist(
     (set, get) => {
       const cheer = (mood: MascotMood, line: string | null) => set({ mascot: { mood, line, at: performance.now() } });
+
+      const shout = (text: string, tier: number) => {
+        const callout = { text, tier, at: performance.now() };
+        set({ callout });
+        playSound('callout', tier);
+        setTimeout(() => get().callout === callout && set({ callout: null }), 1150);
+      };
 
       const showBanner = (banner: GameState['banner'], ms = 1300) => {
         set({ banner });
@@ -147,7 +184,8 @@ export const useGameStore = create<GameState & GameActions>()(
 
         if (!roundId) return;
         try {
-          const result = await api.finishRound(roundId, log);
+          // Let the sad-bubble moment play before the results card appears.
+          const [result] = await Promise.all([api.finishRound(roundId, log), sleep(1700)]);
           usePlayerStore.getState().setPlayer(result.player);
           set({ status: 'ended', result: { ...result, ...progress, level: state.level }, localBest: Math.max(get().localBest, result.score) });
           if (result.newBest) {
@@ -157,6 +195,7 @@ export const useGameStore = create<GameState & GameActions>()(
             cheer(score > 0 ? 'happy' : 'sad', score > 0 ? 'Nice run!' : 'Let’s try again!');
           }
         } catch {
+          await sleep(1200);
           set({
             status: 'ended',
             result: {
@@ -186,22 +225,25 @@ export const useGameStore = create<GameState & GameActions>()(
         arenaHeight: ARENA_HEIGHT,
         mascot: { mood: 'idle', line: null, at: 0 },
         localBest: 0,
+        mode: 'prize',
 
         setArenaHeight: (height) => set({ arenaHeight: clamp(height, 300, 900) }),
 
-        startRound: async () => {
+        startRound: async (mode = get().mode) => {
           const status = get().status;
           if (status === 'starting' || status === 'countdown' || status === 'playing' || status === 'paused' || status === 'submitting') return;
-          set({ status: 'starting', result: null });
+          set({ status: 'starting', result: null, mode });
           playSound('button-click', 1);
 
           try {
-            const round = await api.startRound();
+            const wallet = useWalletStore.getState();
+            const txHash = mode === 'prize' && onChainMode && wallet.account ? await wallet.startGameTx() : undefined;
+            const round = await api.startRound(txHash);
             usePlayerStore.getState().setPlayer(round.player);
             set({ ...roundDefaults, collected: {}, roundId: round.roundId, seed: round.seed, ranked: round.ranked, status: 'countdown', countdown: 3 });
-          } catch {
+          } catch (error) {
             set({ status: 'idle' });
-            throw new Error('Could not start a round. Check your connection and try again.');
+            throw new Error(error instanceof Error && error.message !== 'Failed to fetch' ? describeError(error) : 'Couldn’t start. Check your internet and try again.');
           }
 
           cheer('excited', 'Get ready!');
@@ -312,7 +354,7 @@ export const useGameStore = create<GameState & GameActions>()(
               streak += 1;
               playSound('golden-token', 1);
               vibrate(12);
-              cheer('wow', 'Shiny!');
+              cheer('wow', 'Ooh, shiny!');
               break;
             case 'rocket':
               streak += 1;
@@ -338,21 +380,31 @@ export const useGameStore = create<GameState & GameActions>()(
           const prevMultiplier = getStreakMultiplier(state.streak);
           const multiplier = getStreakMultiplier(streak);
           if (multiplier > prevMultiplier) {
-            showBanner({ title: `Combo x${multiplier}!` });
-            playSound('streak-threshold', 1);
             setMusicIntensity(multiplier);
             cheer('excited', multiplier >= 3 ? 'FEVER MODE!' : `x${multiplier} combo!`);
           } else if (token.type === 'standard' && streak > 0 && streak % 8 === 0) {
             cheer('happy', HAPPY_LINES[Math.floor(Math.random() * HAPPY_LINES.length)]);
           }
 
+          // Pick the single best thing to shout about this tap: level > milestone > streak > quick pops > star coin.
+          const recentTaps = token.type === 'bomb' ? [] : [...state.recentTaps.filter((at) => now - at < QUICK_POP_MS), now];
           const crossed = MILESTONES.find((m) => score >= m && state.score < m);
-          if (crossed) {
-            showBanner({ title: milestoneLabel(crossed) });
-            playSound('score-milestone', crossed >= 1000 ? 1.25 : 1);
+          const level = levelForScore(score);
+          const streakWord = token.type !== 'bomb' ? STREAK_WORDS[streak] ?? (streak > 50 && streak % 25 === 0 ? (['Treat Legend!', 5] as [string, number]) : undefined) : undefined;
+          if (level > state.level) {
+            // the level banner below takes the stage
+          } else if (crossed) {
+            shout(...MILESTONE_WORDS[crossed]);
+          } else if (streakWord) {
+            shout(...streakWord);
+          } else if (recentTaps.length === 5) {
+            shout('Pop frenzy!', 3);
+          } else if (recentTaps.length === 3) {
+            shout('Triple pop!', 2);
+          } else if (token.type === 'golden') {
+            shout('Shiny!', 2);
           }
 
-          const level = levelForScore(score);
           if (level > state.level) {
             const world = worldForLevel(level);
             showBanner({ title: `Level ${level}`, subtitle: `Welcome to ${world.name}` }, 1800);
@@ -372,6 +424,7 @@ export const useGameStore = create<GameState & GameActions>()(
             lives: Math.max(0, lives),
             multiplier,
             collected,
+            recentTaps,
             slowmoUntil,
             shake,
             tokens: state.tokens.filter((entry) => entry.id !== tokenId),
@@ -411,8 +464,8 @@ export const useGameStore = create<GameState & GameActions>()(
       };
     },
     {
-      name: 'goodtap-game',
-      partialize: (state) => ({ localBest: state.localBest }),
+      name: 'xurri-game',
+      partialize: (state) => ({ localBest: state.localBest, mode: state.mode }),
     },
   ),
 );

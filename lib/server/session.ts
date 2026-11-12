@@ -9,12 +9,12 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 180;
 const NONCE_MAX_AGE = 60 * 10;
 
 export function getSecret() {
-  const secret = process.env.GOODTAP_SESSION_SECRET;
+  const secret = process.env.XURRI_SESSION_SECRET;
   if (secret && secret.length >= 32) return secret;
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('GOODTAP_SESSION_SECRET must be set to at least 32 characters in production');
+    throw new Error('XURRI_SESSION_SECRET must be set to at least 32 characters in production');
   }
-  return 'goodtap-dev-only-session-secret-change-me';
+  return 'xurri-dev-only-session-secret-change-me';
 }
 
 const sign = (value: string) => createHmac('sha256', getSecret()).update(value).digest('base64url');
@@ -87,9 +87,9 @@ export async function consumeNonce() {
 
 export function signInMessage(address: string, nonce: string, issuedAt: string) {
   return [
-    'Sign in to GoodTap',
+    'Sign in to Xurri',
     '',
-    'This proves you own this wallet. It does not send a transaction or cost gas.',
+    'This just proves the wallet is yours. It’s free and doesn’t move any money.',
     '',
     `Address: ${address}`,
     `Nonce: ${nonce}`,

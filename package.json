@@ -1,16 +1,20 @@
 {
-  "name": "goodtap",
+  "name": "xurri",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node --experimental-require-module ./node_modules/next/dist/bin/next dev",
-    "build": "node --experimental-require-module ./node_modules/next/dist/bin/next build",
-    "start": "node --experimental-require-module ./node_modules/next/dist/bin/next start",
+    "dev": "cross-env NODE_OPTIONS=--experimental-require-module next dev",
+    "build": "cross-env NODE_OPTIONS=--experimental-require-module next build",
+    "start": "cross-env NODE_OPTIONS=--experimental-require-module next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "db:push": "prisma db push",
     "contracts:install": "cd contracts && forge install --no-git OpenZeppelin/openzeppelin-contracts@v5.4.0 foundry-rs/forge-std@v1.17.0",
-    "contracts:test": "cd contracts && forge test"
+    "contracts:test": "cd contracts && forge test",
+    "contracts:test-token": "cd contracts && forge script script/TestToken.s.sol --tc DeployTestToken --rpc-url celo_sepolia --broadcast",
+    "contracts:deploy:testnet": "cd contracts && forge script script/Deploy.s.sol --rpc-url celo_sepolia --broadcast",
+    "contracts:simulate": "cd contracts && forge script script/Deploy.s.sol --rpc-url celo",
+    "contracts:deploy": "cd contracts && forge script script/Deploy.s.sol --rpc-url celo --broadcast --verify"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -35,6 +39,7 @@
     "@typescript-eslint/eslint-plugin": "^8.72.1",
     "@typescript-eslint/parser": "^8.72.1",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.4",
     "globals": "^17.14.0",

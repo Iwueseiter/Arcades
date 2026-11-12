@@ -6,10 +6,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Heart, Home, Pause, Play, Rocket, Trophy, X } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { Mascot } from '@/components/game/Mascot';
+import { FailBubble, SadBubble } from '@/components/game/SadBubble';
 import { SKIN_COLORS, TokenArt } from '@/components/game/TokenArt';
 import { onChainMode } from '@/lib/chain/config';
 import { formatG } from '@/lib/format';
-import { ARENA_WIDTH, STARTING_LIVES, levelStartsAt, nextLevelAt, nextStreakThreshold, swayX, worldForLevel } from '@/lib/game-rules';
+import { ARENA_WIDTH, STARTING_LIVES, levelStartsAt, nextLevelAt, swayX, worldForLevel } from '@/lib/game-rules';
 import { useGameStore, type Pop } from '@/lib/game-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { toast } from '@/lib/toast-store';
@@ -78,20 +79,12 @@ function PopEffect({ pop, height }: { pop: Pop; height: number }) {
   );
 }
 
-// Fixed positions so the twinkles don't jump between renders.
-const SPARKLES = Array.from({ length: 22 }, (_, i) => ({
-  left: `${(i * 37 + 11) % 96}%`,
-  top: `${(i * 53 + 7) % 92}%`,
-  size: 6 + (i % 4) * 3,
-  delay: `${-(i * 0.43) % 3}s`,
-}));
-
-const BOKEH = [
-  { left: '8%', top: '14%', size: 140 },
-  { left: '72%', top: '8%', size: 110 },
-  { left: '60%', top: '52%', size: 170 },
-  { left: '14%', top: '68%', size: 130 },
-  { left: '42%', top: '30%', size: 90 },
+// Clouds drift across the sky at different heights and speeds; negative delays spread them out from the start.
+const CLOUDS = [
+  { top: '14%', size: 150, speed: 38, offset: 5 },
+  { top: '34%', size: 110, speed: 30, offset: 18 },
+  { top: '56%', size: 170, speed: 46, offset: 30 },
+  { top: '76%', size: 120, speed: 34, offset: 12 },
 ];
 
 export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
@@ -113,6 +106,7 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
       ranked: s.ranked,
       result: s.result,
       mascot: s.mascot,
+      callout: s.callout,
       arenaHeight: s.arenaHeight,
     })),
   );
@@ -175,7 +169,7 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
     try {
       await startRound();
     } catch (error) {
-      toast.error('Round didn’t start', error instanceof Error ? error.message : undefined);
+      toast.error('Couldn’t start the game', error instanceof Error ? error.message : undefined);
       exit();
     }
   };
@@ -184,8 +178,6 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
 
   const world = worldForLevel(game.level);
   const slowmo = game.status === 'playing' && now - game.startedAt < game.slowmoUntil;
-  const threshold = nextStreakThreshold(game.streak);
-  const comboProgress = threshold ? (game.streak / threshold) * 100 : 100;
   const levelStart = levelStartsAt(game.level);
   const levelProgress = Math.min(1, (game.score - levelStart) / (nextLevelAt(game.level) - levelStart));
   const roundsLeft = player?.roundsLeft ?? 0;
@@ -200,54 +192,49 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.25 }}
       role="dialog"
-      aria-label="GoodTap game"
+      aria-label="Xurri game"
     >
       <div className="gs-backdrop" aria-hidden>
         <div className="gs-fever" />
-        {BOKEH.map((b, i) => (
-          <span key={i} className="gs-bokeh" style={{ left: b.left, top: b.top, width: b.size, height: b.size, animationDelay: `${-i * 1.7}s` }} />
-        ))}
-        {SPARKLES.map((star, i) => (
-          <span key={`s${i}`} className="gs-sparkle" style={{ left: star.left, top: star.top, width: star.size, height: star.size, animationDelay: star.delay }} />
+        <span className="gs-sun" />
+        {CLOUDS.map((cloud, i) => (
+          <span key={i} className="gs-cloud" style={{ top: cloud.top, width: cloud.size, animationDuration: `${cloud.speed}s`, animationDelay: `${-cloud.offset}s` }} />
         ))}
       </div>
 
       <header className="gs-hud">
         <button type="button" className="gs-icon" onClick={pause} aria-label="Pause" disabled={game.status !== 'playing'}>
-          <Pause size={20} fill="currentColor" />
+          <Pause size={18} fill="currentColor" />
         </button>
         <div className="gs-score-block">
-          <span className="gs-level">
-            Lv {game.level} · {world.name}
-          </span>
-          <motion.div key={game.score} className="gs-score num" initial={{ scale: 1.15 }} animate={{ scale: 1 }}>
+          <motion.div key={game.score} className="gs-score num" initial={{ scale: 1.12 }} animate={{ scale: 1 }}>
             {game.score.toLocaleString()}
           </motion.div>
-          <div className="gs-level-bar" aria-hidden>
-            <motion.span animate={{ width: `${levelProgress * 100}%` }} />
+          <div className="gs-sub">
+            <span>{world.name}</span>
+            {game.multiplier > 1 && (
+              <motion.span key={game.multiplier} className="gs-mult" initial={{ scale: 1.6 }} animate={{ scale: 1 }}>
+                x{game.multiplier}
+              </motion.span>
+            )}
+            {slowmo && (
+              <span className="gs-mult slow">
+                <Rocket size={11} /> slow-mo
+              </span>
+            )}
           </div>
         </div>
         <div className="gs-hearts" aria-label={`${game.lives} lives left`}>
           {Array.from({ length: STARTING_LIVES }, (_, i) => (
-            <motion.span key={i} animate={{ scale: i < game.lives ? 1 : 0.7, opacity: i < game.lives ? 1 : 0.35 }}>
-              <Heart size={22} fill={i < game.lives ? '#ff5f7e' : 'transparent'} color="#ff5f7e" strokeWidth={2.5} />
+            <motion.span key={i} animate={{ scale: i < game.lives ? 1 : 0.7, opacity: i < game.lives ? 1 : 0.3 }}>
+              <Heart size={20} fill={i < game.lives ? '#ff5f7e' : 'transparent'} color="#ff5f7e" strokeWidth={2.5} />
             </motion.span>
           ))}
         </div>
       </header>
 
-      <div className="gs-combo">
-        <div className="combo-track" aria-hidden>
-          <div className="combo-fill" style={{ width: `${Math.min(comboProgress, 100)}%` }} />
-        </div>
-        <motion.div key={game.multiplier} className="combo-mult" initial={{ scale: 1.6 }} animate={{ scale: 1 }}>
-          x{game.multiplier}
-        </motion.div>
-        {slowmo && (
-          <span className="badge badge-mint">
-            <Rocket size={12} /> Slow-mo
-          </span>
-        )}
+      <div className="gs-progress" aria-hidden>
+        <motion.span animate={{ width: `${levelProgress * 100}%` }} />
       </div>
 
       <div ref={arenaRef} className="gs-arena" aria-label="Play field">
@@ -276,6 +263,17 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
           {game.pops.map((pop) => (
             <motion.div key={pop.id} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} exit={{ opacity: 0 }}>
               <PopEffect pop={pop} height={game.arenaHeight} />
+              {pop.kind === 'miss' && (
+                <motion.span
+                  className="miss-bubble"
+                  style={{ left: pct(pop.x, ARENA_WIDTH), top: pct(pop.y, game.arenaHeight) }}
+                  initial={{ y: 10, scale: 0.4, opacity: 0 }}
+                  animate={{ y: -70, scale: 1, opacity: [0, 1, 1, 0] }}
+                  transition={{ duration: 0.75, ease: 'easeOut' }}
+                >
+                  <SadBubble />
+                </motion.span>
+              )}
               <motion.span
                 className={`pop ${pop.kind}`}
                 style={{ left: pct(pop.x, ARENA_WIDTH), top: pct(pop.y, game.arenaHeight) }}
@@ -287,6 +285,36 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
               </motion.span>
             </motion.div>
           ))}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {game.callout && game.status === 'playing' && (
+            <motion.div
+              key={game.callout.at}
+              className={`callout tier-${game.callout.tier}`}
+              initial={{ scale: 0.2, rotate: -12, opacity: 0 }}
+              animate={{ scale: [0.2, 1.18, 1], rotate: [-12, 4, -2], opacity: 1 }}
+              exit={{ scale: 1.1, y: -40, opacity: 0 }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
+              aria-live="polite"
+            >
+              <span className="callout-text">
+                <span className="callout-outline" aria-hidden>
+                  {game.callout.text}
+                </span>
+                <span className="callout-fill">{game.callout.text}</span>
+              </span>
+              {Array.from({ length: 6 }, (_, i) => (
+                <motion.i
+                  key={i}
+                  className="callout-spark"
+                  initial={{ scale: 0, x: 0, y: 0, opacity: 1 }}
+                  animate={{ scale: [0, 1.2, 0], x: Math.cos((i / 6) * Math.PI * 2) * 120, y: Math.sin((i / 6) * Math.PI * 2) * 50, opacity: [1, 1, 0] }}
+                  transition={{ duration: 0.7, delay: 0.1 }}
+                />
+              ))}
+            </motion.div>
+          )}
         </AnimatePresence>
 
         <AnimatePresence>
@@ -316,15 +344,33 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
         {game.status !== 'playing' && (
           <motion.div className="gs-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {game.status === 'countdown' ? (
-              <motion.div
-                key={game.countdown}
-                className="countdown"
-                initial={{ scale: 2, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 16 }}
-              >
-                {game.countdown}
-              </motion.div>
+              <div className="countdown-wrap">
+                <motion.div
+                  key={game.countdown}
+                  className="countdown"
+                  initial={{ scale: 2, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 16 }}
+                >
+                  {game.countdown}
+                </motion.div>
+                <div className="quick-guide">
+                  <span>
+                    <span className="qg-icons">
+                      <TokenArt skin="coin" />
+                      <TokenArt skin="jelly-cube" />
+                      <TokenArt skin="bubble" />
+                    </span>
+                    Tap
+                  </span>
+                  <span>
+                    <span className="qg-icons">
+                      <TokenArt skin="bomb" />
+                    </span>
+                    Avoid
+                  </span>
+                </div>
+              </div>
             ) : game.status === 'paused' ? (
               <motion.div className="overlay-panel" initial={{ scale: 0.9 }} animate={{ scale: 1 }}>
                 <p className="eyebrow">Paused</p>
@@ -338,17 +384,19 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
                   <X size={16} /> End round
                 </button>
               </motion.div>
-            ) : game.status === 'starting' || game.status === 'submitting' ? (
+            ) : game.status === 'submitting' ? (
+              <FailBubble title={game.lives <= 0 ? 'Oh no!' : 'Round over'} subtitle={game.lives <= 0 ? 'Out of lives' : `${game.score.toLocaleString()} points`} />
+            ) : game.status === 'starting' ? (
               <div className="overlay-panel">
-                <div className="spinner" style={{ margin: '0 auto 12px', width: 30, height: 30, color: 'var(--violet)' }} />
-                <p className="title-md">{game.status === 'starting' ? 'Loading round…' : 'Checking your score…'}</p>
+                <div className="spinner" style={{ margin: '0 auto 12px', width: 30, height: 30, color: 'var(--orange)' }} />
+                <p className="title-md">Getting ready…</p>
               </div>
             ) : game.status === 'ended' && result ? (
               <motion.div className="overlay-panel result-panel" initial={{ scale: 0.85, y: 20 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 22 }}>
                 <div className="result-mascot">
                   <Mascot mood={game.mascot.mood} line={game.mascot.line} at={game.mascot.at} size={96} side="right" />
                 </div>
-                <p className="eyebrow">{result.ranked ? 'Ranked round' : 'Practice round'}</p>
+                <p className="eyebrow">{result.ranked ? 'Prize game' : 'Free play'}</p>
                 <div className="title-xl num" style={{ fontSize: '3.4rem' }}>
                   {result.score.toLocaleString()}
                 </div>
@@ -363,9 +411,9 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
                   )}
                   {result.reward > 0 && <span className="badge badge-mint">+{formatG(result.reward, 3)} G$</span>}
                   {result.xpGained ? <span className="badge">+{result.xpGained} XP</span> : null}
-                  {result.ranked && result.reward === 0 && onChainMode && !player?.address && <span className="badge">Connect a wallet to earn G$</span>}
-                  {result.offline && <span className="badge badge-coral">Not saved: offline</span>}
-                  {result.rejected && <span className="badge badge-coral">Score not accepted</span>}
+                  {result.ranked && result.reward === 0 && onChainMode && !player?.address && <span className="badge">Connect a wallet to win G$</span>}
+                  {result.offline && <span className="badge badge-coral">Not saved: no internet</span>}
+                  {result.rejected && <span className="badge badge-coral">This score didn’t count</span>}
                 </div>
                 {result.completed && result.completed.length > 0 && (
                   <div className="result-missions">
@@ -377,11 +425,11 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
                   </div>
                 )}
                 <button type="button" className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={begin}>
-                  <Play size={18} fill="currentColor" /> {roundsLeft > 0 ? `Play again · ${roundsLeft} left` : 'Practice again'}
+                  <Play size={18} fill="currentColor" /> {roundsLeft > 0 ? `Play again · ${roundsLeft} left` : 'Play for fun'}
                 </button>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   <button type="button" className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={exit}>
-                    <Home size={16} /> Lobby
+                    <Home size={16} /> Home
                   </button>
                   <button
                     type="button"

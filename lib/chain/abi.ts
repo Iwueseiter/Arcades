@@ -1,4 +1,17 @@
 export const arcadeAbi = [
+  { type: 'function', name: 'startGame', stateMutability: 'payable', inputs: [], outputs: [{ name: 'playNumber', type: 'uint32' }] },
+  { type: 'function', name: 'playFee', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'playsLeft', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ type: 'uint32' }] },
+  {
+    type: 'event',
+    name: 'GameStarted',
+    inputs: [
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'day', type: 'uint64', indexed: true },
+      { name: 'playNumber', type: 'uint32', indexed: false },
+      { name: 'fee', type: 'uint256', indexed: false },
+    ],
+  },
   { type: 'function', name: 'claimDaily', stateMutability: 'nonpayable', inputs: [], outputs: [{ name: 'amount', type: 'uint256' }] },
   {
     type: 'function',
@@ -63,6 +76,8 @@ export const arcadeAbi = [
   { type: 'error', name: 'ItemUnavailable', inputs: [] },
   { type: 'error', name: 'AlreadyOwned', inputs: [] },
   { type: 'error', name: 'EnforcedPause', inputs: [] },
+  { type: 'error', name: 'WrongPlayFee', inputs: [] },
+  { type: 'error', name: 'NoPlaysLeft', inputs: [] },
 ] as const;
 
 export const erc20Abi = [
@@ -89,7 +104,7 @@ export const erc20Abi = [
   },
 ] as const;
 
-// Matches GoodTapArcade's EIP-712 domain and REWARD_TYPEHASH.
+// Matches XurriArcade's EIP-712 domain and REWARD_TYPEHASH.
 export const rewardVoucherTypes = {
   RewardVoucher: [
     { name: 'player', type: 'address' },
@@ -97,3 +112,16 @@ export const rewardVoucherTypes = {
     { name: 'deadline', type: 'uint256' },
   ],
 } as const;
+
+/** GoodDollar's UBIScheme: verified humans claim their free daily G$ from it. */
+export const ubiAbi = [
+  { type: 'function', name: 'claim', stateMutability: 'nonpayable', inputs: [], outputs: [{ type: 'bool' }] },
+  { type: 'function', name: 'checkEntitlement', stateMutability: 'view', inputs: [{ name: 'member', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'currentDay', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'periodStart', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+] as const;
+
+/** GoodDollar's Identity: who has passed the face check (a connected wallet resolves to its verified root). */
+export const identityAbi = [
+  { type: 'function', name: 'getWhitelistedRoot', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ type: 'address' }] },
+] as const;

@@ -34,9 +34,9 @@ export function ShopView() {
         setPlayer(player);
       }
       playSound('shop-purchase', 1);
-      toast.success(`${item.name} unlocked`, `${item.price} G$ spent${onChainMode ? ' and recycled into the reward pool' : ''}.`);
+      toast.success(`${item.name} unlocked`, `${item.price} G$ spent.`);
     } catch (error) {
-      toast.error('Purchase failed', describeError(error));
+      toast.error('Couldn’t buy that', describeError(error));
     } finally {
       setPending(null);
     }
@@ -49,7 +49,7 @@ export function ShopView() {
       <div className="card card-gold">
         <div className="row">
           <div>
-            <p className="eyebrow">Arcade shop</p>
+            <p className="eyebrow">Shop</p>
             <h1 className="title-xl">Spend G$</h1>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -61,8 +61,8 @@ export function ShopView() {
         </div>
         <p className="copy" style={{ marginTop: 8 }}>
           {onChainMode
-            ? 'Purchases are on-chain, so your items stay with your wallet. Revenue tops up the reward pool.'
-            : 'Demo mode: purchases use your practice balance until the GoodTap contract goes live.'}
+            ? 'Your items are saved to your wallet. What you spend goes back into the prize pot.'
+            : 'Test mode: you’re spending play money for now.'}
         </p>
         {needsWallet && (
           <div style={{ marginTop: 14 }}>

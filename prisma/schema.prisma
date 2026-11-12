@@ -30,7 +30,6 @@ model Player {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   rounds        GameRound[]
-  mergeRuns     MergeRun[]
 
   @@index([weekKey, weeklyBest])
 }
@@ -45,23 +44,10 @@ model GameRound {
   finishedAt  DateTime?
   score       Int?
   rewardMilli Int       @default(0)
+  /// The on-chain startGame transaction that paid for a prize game (on-chain mode only).
+  txHash      String?   @unique
 
   @@index([playerId, startedAt])
 }
 
-/// One daily Jelly Merge attempt. The server replays `moves` from `seed` to verify the score.
-model MergeRun {
-  id          String    @id @default(cuid())
-  playerId    String
-  player      Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  day         String
-  seed        Int
-  startedAt   DateTime  @default(now())
-  finishedAt  DateTime?
-  score       Int?
-  maxTier     Int?
-  rewardMilli Int       @default(0)
 
-  @@unique([playerId, day])
-  @@index([day, score])
-}

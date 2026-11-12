@@ -30,7 +30,7 @@ export const useSettingsStore = create<SettingsState>()(
       toggleHaptics: () => set({ haptics: !get().haptics }),
     }),
     {
-      name: 'goodtap-settings',
+      name: 'xurri-settings',
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         toggleAudioMute(state.muted);
