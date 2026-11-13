@@ -47,6 +47,14 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
     void refresh().then(() => initWallet());
   }, [refresh, initWallet]);
 
+  // Safety net: if loading takes more than 6 seconds, force to sign-in screen.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowWelcome((prev) => (prev === null ? true : prev));
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Once we know who the player is, decide what to show.
   useEffect(() => {
     if (!player) return; // still loading — keep the blank screen
