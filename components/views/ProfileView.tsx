@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { EmailSignIn } from '@/components/auth/EmailSignIn';
 import { useEffect, useState, type FormEvent } from 'react';
-import { ExternalLink, LogOut, Music, ShieldCheck, Volume2, Vibrate, Wallet } from 'lucide-react';
+import { ExternalLink, LogOut, Mail, Music, ShieldCheck, Volume2, Vibrate, Wallet } from 'lucide-react';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { Avatar } from '@/components/ui/Avatar';
 import { api } from '@/lib/api';
@@ -112,6 +113,39 @@ export function ProfileView() {
               Connect a wallet to claim free daily G$ and keep your items. Your progress comes with you.
             </p>
             <ConnectButton block />
+          </>
+        )}
+      </div>
+
+      <div className="card">
+        <p className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Mail size={12} /> Email sign-in
+        </p>
+        {player?.signedInEmail ? (
+          <>
+            <p className="title-md" style={{ marginTop: 8, overflowWrap: 'anywhere' }}>
+              {player.signedInEmail}
+            </p>
+            <p className="copy" style={{ fontSize: '0.8rem' }}>
+              Sign in with this email on any device to get your progress back.
+            </p>
+            {!account && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-block"
+                style={{ marginTop: 12 }}
+                onClick={() => disconnect().then(() => toast.info('Signed out', 'You’re playing as a guest now.'))}
+              >
+                <LogOut size={16} /> Sign out
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <p className="copy" style={{ margin: '6px 0 12px' }}>
+              Keep your scores and items safe, and pick up on any device.
+            </p>
+            <EmailSignIn compact />
           </>
         )}
       </div>

@@ -15,6 +15,7 @@ import { useGameStore, type PlayMode } from '@/lib/game-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { levelFromXp, useProgressStore } from '@/lib/progress-store';
 import { toast } from '@/lib/toast-store';
+import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 
 // Treats falling through the hero, each on its own lane, speed and delay.
 const RAIN: { skin: Skin; left: string; size: number; duration: number; delay: number }[] = [
@@ -175,6 +176,8 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
           </>
         )}
       </section>
+
+      <InstallPrompt />
 
       <UbiClaim compact />
 

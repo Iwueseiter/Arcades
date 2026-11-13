@@ -4,6 +4,8 @@ export type PlayerSnapshot = {
   displayName: string;
   email: string;
   address: string | null;
+  /** Email the player signs in with (magic link), if any. */
+  signedInEmail: string | null;
   bestScore: number;
   weeklyBest: number;
   gamesPlayed: number;

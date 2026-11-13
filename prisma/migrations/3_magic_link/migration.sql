@@ -1,0 +1,24 @@
+-- AlterTable
+ALTER TABLE "Player" ADD COLUMN     "loginEmail" TEXT;
+
+-- CreateTable
+CREATE TABLE "EmailLoginToken" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "usedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "EmailLoginToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EmailLoginToken_tokenHash_key" ON "EmailLoginToken"("tokenHash");
+
+-- CreateIndex
+CREATE INDEX "EmailLoginToken_email_createdAt_idx" ON "EmailLoginToken"("email", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Player_loginEmail_key" ON "Player"("loginEmail");
+

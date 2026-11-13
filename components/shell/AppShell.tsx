@@ -8,7 +8,7 @@ import { BottomNav } from '@/components/shell/BottomNav';
 import { TopBar } from '@/components/shell/TopBar';
 import { TxOverlay } from '@/components/shell/TxOverlay';
 import { Toaster } from '@/components/ui/Toaster';
-import { Welcome, hasBeenWelcomed } from '@/components/onboarding/Welcome';
+import { Welcome, hasBeenWelcomed, markWelcomed } from '@/components/onboarding/Welcome';
 import { PlayView } from '@/components/views/PlayView';
 import { ProfileView } from '@/components/views/ProfileView';
 import { RanksView } from '@/components/views/RanksView';
@@ -17,6 +17,7 @@ import { ShopView } from '@/components/views/ShopView';
 import { useGameStore } from '@/lib/game-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { useWalletStore } from '@/lib/chain/wallet-store';
+import { toast } from '@/lib/toast-store';
 
 export type TabId = 'play' | 'ranks' | 'shop' | 'rewards' | 'me';
 
@@ -28,10 +29,20 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
   const player = usePlayerStore((s) => s.player);
   const [welcome, setWelcome] = useState(false);
 
-  // First visit: show the sign-in screen once, unless they already have a name or a wallet.
+  // First visit: show the sign-in screen once, unless they already have a name, a wallet or an email.
   useEffect(() => {
-    if (player && !player.name && !player.address && !hasBeenWelcomed()) setWelcome(true);
+    if (player && !player.name && !player.address && !player.signedInEmail && !hasBeenWelcomed()) setWelcome(true);
   }, [player]);
+
+  // Arriving from a sign-in email.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('signedin') !== 'email') return;
+    markWelcomed();
+    toast.success('You’re signed in', 'Your progress is saved to your email.');
+    params.delete('signedin');
+    window.history.replaceState(null, '', params.size ? `/?${params}` : '/');
+  }, []);
 
   useEffect(() => {
     void refresh().then(() => initWallet());
