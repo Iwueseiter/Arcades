@@ -18,6 +18,13 @@ export function ConnectButton({
   const hasProvider = useWalletStore((s) => s.hasProvider);
 
   const onClick = async () => {
+    if (!hasProvider) {
+      toast.error(
+        'No wallet found',
+        'Open Xurri inside a wallet app (e.g. GoodDollar or MetaMask), or install a browser wallet extension.',
+      );
+      return;
+    }
     try {
       await connect();
       toast.success('Wallet connected', 'You\u2019re signed in and ready to play.');
@@ -26,20 +33,6 @@ export function ConnectButton({
       toast.error('Couldn\u2019t connect', describeError(error));
     }
   };
-
-  // No wallet detected — still show the button, clicking it will prompt them to install one
-  if (!hasProvider) {
-    return (
-      <button
-        type="button"
-        className={`btn btn-primary ${block ? 'btn-block' : 'btn-sm'}`}
-        onClick={onClick}
-        disabled={status !== 'idle'}
-      >
-        <Wallet size={18} /> {label}
-      </button>
-    );
-  }
 
   return (
     <button

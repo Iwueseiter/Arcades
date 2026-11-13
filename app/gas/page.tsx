@@ -18,6 +18,11 @@ export default function GasPage() {
   const [copied, setCopied] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Build Telegram URL with wallet address pre-filled
+  const telegramUrl = account
+    ? `${telegramGasUrl}?text=${encodeURIComponent(`Hi, I need a little CELO for gas fees to play Xurri. My wallet address is: ${account}`)}`
+    : telegramGasUrl;
+
   // Load player + wallet on mount
   useEffect(() => {
     void refreshPlayer().then(() => initWallet());
@@ -131,7 +136,7 @@ export default function GasPage() {
               <li>This page checks your balance automatically. Once CELO arrives, you&apos;ll be taken to the game.</li>
             </ol>
 
-            <a className="btn btn-primary btn-block" href={telegramGasUrl} target="_blank" rel="noreferrer">
+            <a className="btn btn-primary btn-block" href={telegramUrl} target="_blank" rel="noreferrer">
               <Send size={18} /> Open Telegram group
             </a>
             <Link href="/" className="btn btn-ghost btn-block" style={{ marginTop: 8 }}>
