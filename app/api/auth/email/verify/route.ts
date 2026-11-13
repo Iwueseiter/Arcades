@@ -10,36 +10,48 @@ import { toSnapshot } from '@/lib/server/player';
  * Called by the client after magic.auth.loginWithEmailOTP() returns a DIDToken.
  */
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { didToken?: unknown };
-  const didToken = typeof body.didToken === 'string' ? body.didToken : null;
-
-  if (!didToken) {
-    return NextResponse.json({ error: 'DID token is required.' }, { status: 400 });
-  }
-
-  let email: string;
+  // Guard: catch any top-level crash and return a readable error
   try {
-    // getMetadataByToken validates the token server-side against Magic's API
-    // and returns the user's details — more reliable than local token.validate().
-    const metadata = await getMagicAdmin().users.getMetadataByToken(didToken);
-    if (!metadata.email) throw new Error('No email returned from Magic.');
-    email = metadata.email.trim().toLowerCase();
+    const body = (await request.json().catch(() => ({}))) as { didToken?: unknown };
+    const didToken = typeof body.didToken === 'string' ? body.didToken : null;
+
+    if (!didToken) {
+      return NextResponse.json({ error: 'DID token is required.' }, { status: 400 });
+    }
+
+    // Check secret key is configured before calling Magic
+    if (!process.env.MAGIC_SECRET_KEY) {
+      console.error('[auth] MAGIC_SECRET_KEY is not set on this server.');
+      return NextResponse.json(
+        { error: 'Auth is not configured on the server. Contact support.' },
+        { status: 500 },
+      );
+    }
+
+    let email: string;
+    try {
+      const metadata = await getMagicAdmin().users.getMetadataByToken(didToken);
+      if (!metadata.email) throw new Error('No email returned from Magic.');
+      email = metadata.email.trim().toLowerCase();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error('[auth] magic token verification failed:', msg);
+      return NextResponse.json(
+        { error: 'Sign-in failed. The code may have expired — please try again.' },
+        { status: 401 },
+      );
+    }
+
+    const player = await resolvePlayer(email);
+    return NextResponse.json(toSnapshot(player));
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error('[auth] magic token verification failed:', msg);
-
-    // Surface a clearer message for missing secret key
-    if (msg.includes('MAGIC_SECRET_KEY')) {
-      return NextResponse.json({ error: 'Auth is not configured on the server.' }, { status: 500 });
-    }
+    console.error('[auth] unexpected error in POST /api/auth/email/verify:', msg);
     return NextResponse.json(
-      { error: 'Sign-in failed. Please try again.' },
-      { status: 401 },
+      { error: `Server error: ${msg}` },
+      { status: 500 },
     );
   }
-
-  const player = await resolvePlayer(email);
-  return NextResponse.json(toSnapshot(player));
 }
 
 /** Opened from the sign-in email link (backward-compat). Signs the player in and redirects. */
