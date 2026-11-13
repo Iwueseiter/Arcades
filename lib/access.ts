@@ -3,8 +3,8 @@ import type { PlayerSnapshot } from '@/lib/types';
 /** Enough CELO to cover a typical Celo network fee. */
 export const MIN_CELO_GAS = 0.0001;
 
-/** Telegram group where players can ask for a little CELO for gas. Override with NEXT_PUBLIC_TELEGRAM_GAS_URL. */
-export const telegramGasUrl = process.env.NEXT_PUBLIC_TELEGRAM_GAS_URL || 'https://t.me/celoorg';
+/** Telegram group where players can drop their wallet address to request CELO for gas. */
+export const telegramGasUrl = 'https://t.me/+3Pd_PX0S6541Njlk';
 
 /** Signed in with a wallet or an email magic link — guests cannot pay. */
 export const isSignedIn = (player: PlayerSnapshot | null | undefined) =>
