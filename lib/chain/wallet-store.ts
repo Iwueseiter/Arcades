@@ -30,6 +30,8 @@ export const publicClient = createPublicClient({ chain: chainConfig.chain, trans
 
 export type OnChainState = {
   gdBalance: number;
+  /** Native CELO, used for network fees. */
+  celoBalance: number;
   verified: boolean;
   canClaimDaily: boolean;
   dailyAmount: number;
@@ -108,6 +110,8 @@ export function describeError(error: unknown): string {
 function getProvider() {
   return typeof window !== 'undefined' ? window.ethereum ?? null : null;
 }
+
+let accountsListenerBound = false;
 
 async function ensureChain(provider: EIP1193Provider) {
   const target = chainConfig.chain;
@@ -189,13 +193,16 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
       void get().refreshChain();
     }
 
-    provider.on?.('accountsChanged', (next: string[]) => {
-      const nextAccount = next[0] ? getAddress(next[0]) : null;
-      if (nextAccount !== get().account) {
-        set({ account: null, chainState: null });
-        void api.logout().then(usePlayerStore.getState().setPlayer);
-      }
-    });
+    if (!accountsListenerBound) {
+      accountsListenerBound = true;
+      provider.on?.('accountsChanged', (next: string[]) => {
+        const nextAccount = next[0] ? getAddress(next[0]) : null;
+        if (nextAccount === get().account) return;
+        // Locking the wallet should not wipe the Xurri session; switching wallets does.
+        set({ account: null, chainState: null, ubi: null });
+        if (nextAccount) void api.logout().then(usePlayerStore.getState().setPlayer);
+      });
+    }
   },
 
   connect: async () => {
@@ -234,8 +241,9 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
     const { giftAddress, tournamentsAddress, shopAddress, tokenAddress } = chainConfig;
 
     const read = <T,>(promise: Promise<T>) => promise.catch(() => null);
-    const [balance, preview, streak, verified, playsLeft, claimed, pot, owns] = await Promise.all([
+    const [balance, celo, preview, streak, verified, playsLeft, claimed, pot, owns] = await Promise.all([
       read(publicClient.readContract({ address: tokenAddress, abi: erc20Abi, functionName: 'balanceOf', args: [account] })),
+      read(publicClient.getBalance({ address: account })),
       giftAddress ? read(publicClient.readContract({ address: giftAddress, abi: giftAbi, functionName: 'preview', args: [account] })) : null,
       giftAddress ? read(publicClient.readContract({ address: giftAddress, abi: giftAbi, functionName: 'streakOf', args: [account] })) : null,
       giftAddress ? read(publicClient.readContract({ address: giftAddress, abi: giftAbi, functionName: 'isVerified', args: [account] })) : null,
@@ -264,6 +272,7 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
     set({
       chainState: {
         gdBalance: balance === null ? 0 : toG(balance),
+        celoBalance: celo === null ? 0 : Number(formatUnits(celo, 18)),
         verified: Boolean(verified),
         canClaimDaily: preview?.[0] ?? false,
         dailyAmount: preview ? toG(preview[1]) : 0,
@@ -283,6 +292,7 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
     const { account, chainState } = get();
     const gift = chainConfig.giftAddress;
     if (!account || !gift) return null;
+    if (!chainState?.verified) throw new Error('Do the quick face check in the GoodDollar app first.');
     set({ busy: 'Opening your daily gift' });
     try {
       await sendTx(account, async (wallet) => {
@@ -401,6 +411,7 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
     const { account, ubi } = get();
     const ubiAddress = chainConfig.ubiAddress;
     if (!account || !ubiAddress) return null;
+    if (!ubi?.verified) throw new Error('Do the quick face check in the GoodDollar app first.');
     set({ busy: 'Claiming your free G$' });
     try {
       await sendTx(account, async (wallet) => {

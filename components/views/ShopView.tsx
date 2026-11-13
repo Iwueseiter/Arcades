@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Crown, Gem, Package, Zap } from 'lucide-react';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { isSignedIn } from '@/lib/access';
 import { api } from '@/lib/api';
 import { playSound } from '@/lib/audioManager';
 import { onChainMode, tournamentsEnabled } from '@/lib/chain/config';
@@ -21,17 +22,24 @@ export function ShopView() {
   const owned = useOwnedItems();
   const account = useWalletStore((s) => s.account);
   const buyOnChain = useWalletStore((s) => s.buyItem);
+  const player = usePlayerStore((s) => s.player);
   const setPlayer = usePlayerStore((s) => s.setPlayer);
   const [pending, setPending] = useState<string | null>(null);
+  const signedIn = isSignedIn(player);
 
   const buy = async (item: ShopItem) => {
+    if (!signedIn) {
+      toast.error('Sign in to pay', 'Connect a wallet or sign in with email first.');
+      return;
+    }
     setPending(item.slug);
     try {
       if (onChainMode) {
-        await buyOnChain(item.slug);
+        const ok = await buyOnChain(item.slug);
+        if (!ok) throw new Error('Connect your wallet to pay.');
       } else {
-        const { player } = await api.demoBuy(item.slug);
-        setPlayer(player);
+        const { player: next } = await api.demoBuy(item.slug);
+        setPlayer(next);
       }
       playSound('shop-purchase', 1);
       toast.success(`${item.name} unlocked`, `${item.price} G$ spent.`);
@@ -43,6 +51,7 @@ export function ShopView() {
   };
 
   const needsWallet = onChainMode && !account;
+  const cannotPay = !signedIn || needsWallet;
 
   return (
     <>
@@ -64,11 +73,15 @@ export function ShopView() {
             ? `Your items are saved to your wallet. 10% of what you spend goes to GoodDollar’s UBI pool${tournamentsEnabled ? ', and the rest to the tournament prize pot' : ''}.`
             : 'Test mode: you’re spending play money for now.'}
         </p>
-        {needsWallet && (
+        {!signedIn ? (
+          <p className="copy" style={{ marginTop: 12 }}>
+            Sign in with a wallet or email to buy items. Guests can’t pay.
+          </p>
+        ) : needsWallet ? (
           <div style={{ marginTop: 14 }}>
             <ConnectButton block />
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="shop-grid">
@@ -104,7 +117,7 @@ export function ShopView() {
                 type="button"
                 className={`btn btn-sm btn-block ${isOwned ? 'btn-ghost' : 'btn-gold'}`}
                 style={{ marginTop: 'auto' }}
-                disabled={isOwned || needsWallet || !affordable || pending !== null}
+                disabled={isOwned || cannotPay || !affordable || pending !== null}
                 onClick={() => buy(item)}
               >
                 {pending === item.slug ? <span className="spinner" /> : isOwned ? 'Owned' : `${item.price} G$`}

@@ -52,17 +52,19 @@ export function RewardsView({ onNavigate }: { onNavigate?: (tab: TabId) => void 
 
   const demo = player?.demo;
   const streak = onChainMode ? chainState?.streak ?? 0 : demo?.streak ?? 0;
-  const claimedToday = onChainMode ? Boolean(chainState && !chainState.canClaimDaily && chainState.verified) : Boolean(demo?.claimedToday);
+  const claimedToday = onChainMode ? Boolean(chainState?.verified && !chainState.canClaimDaily) : Boolean(demo?.claimedToday);
   const dailyAmount = onChainMode
     ? chainState?.dailyAmount || DEMO_DAILY
     : DEMO_DAILY + DEMO_STREAK_BONUS * Math.min(claimedToday ? streak - 1 : streak, 7);
-  const needsVerification = onChainMode && account && chainState && !chainState.verified;
+  const needsVerification = Boolean(onChainMode && account && chainState && !chainState.verified);
+  const giftUnavailable = Boolean(onChainMode && chainState?.verified && !chainState.canClaimDaily);
   const onClaimDaily = async () => {
     setBusy(true);
     try {
       if (onChainMode) {
         const amount = await claimDaily();
-        toast.success(`+${formatG(amount ?? 0)} G$ claimed`, 'Come back tomorrow for a bigger gift!');
+        if (amount == null) throw new Error('Connect a verified wallet to claim G$.');
+        toast.success(`+${formatG(amount)} G$ claimed`, 'Come back tomorrow for a bigger gift!');
       } else {
         const { amount, player: next } = await api.demoClaim();
         setPlayer(next);
@@ -79,8 +81,9 @@ export function RewardsView({ onNavigate }: { onNavigate?: (tab: TabId) => void 
   const onCollect = async () => {
     try {
       const amount = await claimPrizes();
+      if (amount == null) throw new Error('Connect your wallet to collect prizes.');
       playSound('golden-token', 1);
-      toast.success(`+${formatG(amount ?? 0, 3)} G$ collected`, 'Your tournament prizes are in your wallet.');
+      toast.success(`+${formatG(amount, 3)} G$ collected`, 'Your tournament prizes are in your wallet.');
     } catch (error) {
       toast.error('Couldn’t collect your prizes', describeError(error));
     }
@@ -122,8 +125,21 @@ export function RewardsView({ onNavigate }: { onNavigate?: (tab: TabId) => void 
               </div>
             </div>
           ) : (
-            <button type="button" className="btn btn-gold btn-block" onClick={onClaimDaily} disabled={busy || claimedToday || !player}>
-              {busy ? <span className="spinner" /> : claimedToday ? 'Claimed today ✓' : `Claim ${formatG(dailyAmount)} G$`}
+            <button
+              type="button"
+              className="btn btn-gold btn-block"
+              onClick={onClaimDaily}
+              disabled={busy || claimedToday || giftUnavailable || !player}
+            >
+              {busy ? (
+                <span className="spinner" />
+              ) : giftUnavailable ? (
+                'Not available right now'
+              ) : claimedToday ? (
+                'Claimed today ✓'
+              ) : (
+                `Claim ${formatG(dailyAmount)} G$`
+              )}
             </button>
           )}
         </div>

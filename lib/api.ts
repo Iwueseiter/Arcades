@@ -29,6 +29,8 @@ export const api = {
     request<PlayerSnapshot>('/api/auth/verify', { method: 'POST', body: { address, signature } }),
   logout: () => request<PlayerSnapshot>('/api/auth/logout', { method: 'POST' }),
   emailLink: (email: string) => request<{ ok: true }>('/api/auth/email', { method: 'POST', body: { email } }),
+  verifyOtp: (didToken: string) =>
+    request<PlayerSnapshot>('/api/auth/email/verify', { method: 'POST', body: { didToken } }),
   startRound: (txHash?: string) => request<RoundStartResponse>('/api/game/start', { method: 'POST', body: txHash ? { txHash } : {} }),
   finishRound: (roundId: string, log: TapLogEntry[]) =>
     request<RoundFinishResponse & { rejected?: string }>('/api/game/finish', { method: 'POST', body: { roundId, log } }),

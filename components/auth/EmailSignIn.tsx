@@ -1,70 +1,71 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Mail, MailCheck } from 'lucide-react';
+import { Mail } from 'lucide-react';
+import { getMagic } from '@/lib/magic';
 import { api } from '@/lib/api';
+import { usePlayerStore } from '@/lib/player-store';
 import { toast } from '@/lib/toast-store';
 
-/** Sign in with a link sent by email: no wallet or password needed, and progress follows you to any device. */
+/**
+ * Email sign-in via Magic (magic.link).
+ * Magic handles sending the OTP email and showing the code-entry UI.
+ * Once the user verifies, we get a DIDToken and exchange it for a session.
+ */
 export function EmailSignIn({ compact = false }: { compact?: boolean }) {
+  const setPlayer = usePlayerStore((s) => s.setPlayer);
   const [email, setEmail] = useState('');
-  const [sending, setSending] = useState(false);
-  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const send = async (event: FormEvent) => {
+  const signIn = async (event: FormEvent) => {
     event.preventDefault();
-    setSending(true);
+    setLoading(true);
     try {
-      await api.emailLink(email.trim());
-      setSentTo(email.trim());
+      // Magic opens its own OTP modal — sends the email, collects the code, returns a DIDToken.
+      const didToken = await getMagic().auth.loginWithEmailOTP({ email: email.trim() });
+      if (!didToken) throw new Error('Sign-in was cancelled.');
+
+      // Exchange the DIDToken for an Xurri session.
+      const player = await api.verifyOtp(didToken);
+      setPlayer(player);
+      toast.success('Signed in', 'Welcome to Xurri!');
     } catch (error) {
-      toast.error('Couldn’t send the link', error instanceof Error ? error.message : undefined);
+      // Magic throws when the user dismisses the modal — treat that silently.
+      const msg = error instanceof Error ? error.message : '';
+      if (!msg.toLowerCase().includes('cancel') && !msg.toLowerCase().includes('dismiss')) {
+        toast.error('Sign-in failed', msg || 'Please try again.');
+      }
     } finally {
-      setSending(false);
+      setLoading(false);
     }
   };
 
-  if (sentTo) {
-    return (
-      <div className="email-sent" role="status">
-        <MailCheck size={22} />
-        <div>
-          <strong>Check your inbox</strong>
-          <p>
-            We sent a sign-in link to {sentTo}. It works once, for 15 minutes.{' '}
-            <button type="button" className="link-btn" onClick={() => setSentTo(null)}>
-              Use another email
-            </button>
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <form className="email-signin" onSubmit={send}>
+    <form className="email-signin" onSubmit={signIn}>
       {!compact && (
-        <label htmlFor="signin-email" className="welcome-label">
-          Sign in with email
+        <label htmlFor="signin-email" className="email-signin-label">
+          Email
         </label>
       )}
-      <div className="email-row">
-        <input
-          id="signin-email"
-          className="input"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-        />
-        <button type="submit" className="btn btn-dark" disabled={sending || !email.includes('@')} aria-label="Email me a sign-in link">
-          {sending ? <span className="spinner" /> : <Mail size={18} />}
-        </button>
-      </div>
-      <p className="email-hint">We’ll email you a link. No password needed.</p>
+      <input
+        id="signin-email"
+        className="input"
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        placeholder="you@example.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+      />
+      <button
+        type="submit"
+        className="btn btn-primary btn-block"
+        disabled={loading || !email.includes('@')}
+      >
+        {loading ? <span className="spinner" /> : <Mail size={18} />}
+        {loading ? 'Sending code\u2026' : 'Sign in'}
+      </button>
     </form>
   );
 }

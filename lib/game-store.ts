@@ -21,6 +21,7 @@ import {
   swayX,
   worldForLevel,
 } from '@/lib/game-rules';
+import { hasCeloForGas } from '@/lib/access';
 import { onChainMode, tournamentsEnabled } from '@/lib/chain/config';
 import { describeError, useWalletStore } from '@/lib/chain/wallet-store';
 import { usePlayerStore } from '@/lib/player-store';
@@ -182,7 +183,13 @@ export const useGameStore = create<GameState & GameActions>()(
           collected: state.collected,
         });
 
-        if (!roundId) return;
+        if (!roundId) {
+          set({
+            status: 'ended',
+            result: { score, ranked: false, rank: null, newBest: false, player: usePlayerStore.getState().player!, ...progress, level: state.level },
+          });
+          return;
+        }
         try {
           // Let the sad-bubble moment play before the results card appears.
           const [result] = await Promise.all([api.finishRound(roundId, log), sleep(1700)]);
@@ -237,6 +244,11 @@ export const useGameStore = create<GameState & GameActions>()(
 
           try {
             const wallet = useWalletStore.getState();
+            if (!wallet.account) throw new Error('Connect your wallet to play.');
+            if (!wallet.chainState) await wallet.refreshChain();
+            if (!hasCeloForGas(useWalletStore.getState().chainState?.celoBalance)) {
+              throw new Error('You need a little CELO for network fees. Request some on Telegram.');
+            }
             const txHash = tournamentsEnabled && mode === 'prize' && onChainMode && wallet.account ? await wallet.startGameTx() : undefined;
             const round = await api.startRound(txHash);
             usePlayerStore.getState().setPlayer(round.player);

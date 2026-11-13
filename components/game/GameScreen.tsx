@@ -12,7 +12,8 @@ import { ARENA_WIDTH, STARTING_LIVES, levelStartsAt, nextLevelAt, swayX, worldFo
 import { useGameStore, type Pop } from '@/lib/game-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { toast } from '@/lib/toast-store';
-import { tournamentsEnabled } from '@/lib/chain/config';
+import { onChainMode, tournamentsEnabled } from '@/lib/chain/config';
+import { useWalletStore } from '@/lib/chain/wallet-store';
 
 const pct = (value: number, of: number) => `${(value / of) * 100}%`;
 
@@ -111,6 +112,7 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
   );
   const { startRound, tick, tapToken, pause, resume, quit, exit, setArenaHeight } = useGameStore.getState();
   const player = usePlayerStore((s) => s.player);
+  const playsLeft = useWalletStore((s) => s.chainState?.playsLeft);
   const arenaRef = useRef<HTMLDivElement>(null);
   const screenRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(0);
@@ -164,9 +166,11 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
     el.classList.add('shake');
   }, [game.shake]);
 
+  const prizeLeft = onChainMode ? (playsLeft ?? 0) : (player?.roundsLeft ?? 0);
   const begin = async () => {
     try {
-      await startRound();
+      const nextMode = !tournamentsEnabled || prizeLeft <= 0 ? 'free' : 'prize';
+      await startRound(nextMode);
     } catch (error) {
       toast.error('Couldn’t start the game', error instanceof Error ? error.message : undefined);
       exit();
@@ -179,7 +183,7 @@ export function GameScreen({ onViewRanks }: { onViewRanks: () => void }) {
   const slowmo = game.status === 'playing' && now - game.startedAt < game.slowmoUntil;
   const levelStart = levelStartsAt(game.level);
   const levelProgress = Math.min(1, (game.score - levelStart) / (nextLevelAt(game.level) - levelStart));
-  const roundsLeft = player?.roundsLeft ?? 0;
+  const roundsLeft = prizeLeft;
   const result = game.result;
   const fever = (game.status === 'playing' || game.status === 'paused') && game.multiplier >= 3;
 

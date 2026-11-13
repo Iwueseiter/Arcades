@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { HeartHandshake, Plus } from 'lucide-react';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { isSignedIn } from '@/lib/access';
 import { api } from '@/lib/api';
 import { playSound } from '@/lib/audioManager';
 import { onChainMode } from '@/lib/chain/config';
@@ -18,14 +19,22 @@ const UBI_SHARE = 0.1;
 export function PotCard({ total, boosted, onBoosted }: { total: number; boosted: number; onBoosted: () => void }) {
   const account = useWalletStore((s) => s.account);
   const boostPot = useWalletStore((s) => s.boostPot);
+  const player = usePlayerStore((s) => s.player);
   const setPlayer = usePlayerStore((s) => s.setPlayer);
   const [pending, setPending] = useState<number | null>(null);
+  const signedIn = isSignedIn(player);
 
   const boost = async (amount: number) => {
+    if (!signedIn) {
+      toast.error('Sign in to pay', 'Connect a wallet or sign in with email first.');
+      return;
+    }
     setPending(amount);
     try {
-      if (onChainMode) await boostPot(amount);
-      else setPlayer((await api.demoBoost(amount)).player);
+      if (onChainMode) {
+        const ok = await boostPot(amount);
+        if (!ok) throw new Error('Connect your wallet to add G$.');
+      } else setPlayer((await api.demoBoost(amount)).player);
       playSound('golden-token', 1);
       toast.success(
         `+${formatG(amount * (1 - UBI_SHARE))} G$ in the pot`,
@@ -60,7 +69,11 @@ export function PotCard({ total, boosted, onBoosted }: { total: number; boosted:
       </p>
 
       <div className="pot-actions">
-        {onChainMode && !account ? (
+        {!signedIn ? (
+          <p className="copy" style={{ fontSize: '0.84rem' }}>
+            Sign in to add G$ to the pot. Guests can’t pay.
+          </p>
+        ) : onChainMode && !account ? (
           <ConnectButton block label="Connect to add G$" />
         ) : (
           AMOUNTS.map((amount) => (
