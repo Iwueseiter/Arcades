@@ -19,20 +19,30 @@ export async function POST(request: Request) {
 
   let email: string;
   try {
-    getMagicAdmin().token.validate(didToken);
+    // getMetadataByToken validates the token server-side against Magic's API
+    // and returns the user's details — more reliable than local token.validate().
     const metadata = await getMagicAdmin().users.getMetadataByToken(didToken);
-    if (!metadata.email) throw new Error('No email in token metadata.');
+    if (!metadata.email) throw new Error('No email returned from Magic.');
     email = metadata.email.trim().toLowerCase();
   } catch (error) {
-    console.error('[auth] magic token validation failed', error);
-    return NextResponse.json({ error: 'Invalid or expired sign-in token. Please try again.' }, { status: 401 });
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[auth] magic token verification failed:', msg);
+
+    // Surface a clearer message for missing secret key
+    if (msg.includes('MAGIC_SECRET_KEY')) {
+      return NextResponse.json({ error: 'Auth is not configured on the server.' }, { status: 500 });
+    }
+    return NextResponse.json(
+      { error: 'Sign-in failed. Please try again.' },
+      { status: 401 },
+    );
   }
 
   const player = await resolvePlayer(email);
   return NextResponse.json(toSnapshot(player));
 }
 
-/** Opened from the sign-in email link (backward-compat). Signs the player in and redirects to the app. */
+/** Opened from the sign-in email link (backward-compat). Signs the player in and redirects. */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get('token') ?? '';
