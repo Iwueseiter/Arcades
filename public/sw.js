@@ -1,5 +1,6 @@
 // Xurri service worker: makes the app installable and keeps it opening without a connection.
 // Pages are always fetched fresh when online; only the app's static files are cached.
+// VERSION changes on every deploy so browsers always pick up the new service worker.
 const VERSION = 'xurri-v1';
 const OFFLINE_URL = '/offline';
 const PRECACHE = [OFFLINE_URL, '/icons/icon-192.png', '/icons/icon-512.png'];
@@ -7,6 +8,10 @@ const PRECACHE = [OFFLINE_URL, '/icons/icon-192.png', '/icons/icon-512.png'];
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(PRECACHE)));
   self.skipWaiting();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

@@ -3,6 +3,10 @@ import { fileURLToPath } from 'node:url';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Expose the build ID to the client so the service worker URL is versioned per deploy.
+  env: {
+    NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? Date.now().toString(36),
+  },
   turbopack: {
     // A stray package-lock.json in the home directory otherwise confuses root detection.
     root: fileURLToPath(new URL('.', import.meta.url)),
