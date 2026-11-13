@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Play, Zap } from 'lucide-react';
+import { Check, Play } from 'lucide-react';
 import { GameScreen } from '@/components/game/GameScreen';
 import { TokenArt } from '@/components/game/TokenArt';
 import type { TabId } from '@/components/shell/AppShell';
@@ -11,23 +11,13 @@ import { UbiClaim } from '@/components/wallet/UbiClaim';
 import { hasCeloForGas } from '@/lib/access';
 import { onChainMode, tournamentsEnabled } from '@/lib/chain/config';
 import { useWalletStore } from '@/lib/chain/wallet-store';
-import type { Skin } from '@/lib/game-rules';
 import { useGameStore, type PlayMode } from '@/lib/game-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { levelFromXp, useProgressStore } from '@/lib/progress-store';
 import { toast } from '@/lib/toast-store';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 
-// Treats falling through the hero, each on its own lane, speed and delay.
-const RAIN: { skin: Skin; left: string; size: number; duration: number; delay: number }[] = [
-  { skin: 'coin', left: '70%', size: 54, duration: 6, delay: 0 },
-  { skin: 'golden', left: '84%', size: 40, duration: 7.5, delay: 2.4 },
-  { skin: 'jelly-drop', left: '58%', size: 38, duration: 6.8, delay: 4.1 },
-  { skin: 'candy', left: '88%', size: 44, duration: 8, delay: 1.2 },
-  { skin: 'bubble', left: '64%', size: 36, duration: 7.2, delay: 5.6 },
-];
-
-const HOW_TO: { skin: Skin; label: string }[] = [
+const HOW_TO: { skin: Parameters<typeof TokenArt>[0]['skin']; label: string }[] = [
   { skin: 'coin', label: '+10' },
   { skin: 'jelly-cube', label: '+10' },
   { skin: 'golden', label: '+20' },
@@ -45,7 +35,7 @@ function Missions() {
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Today’s missions</h2>
+        <h2>Today&apos;s missions</h2>
         <span className="muted num">{missions.filter((m) => m.claimed).length}/3</span>
       </div>
       {missions.map((mission) => {
@@ -88,10 +78,16 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
   const status = useGameStore((s) => s.status);
   const startRound = useGameStore((s) => s.startRound);
   const exit = useGameStore((s) => s.exit);
+  const account = useWalletStore((s) => s.account);
   const chainState = useWalletStore((s) => s.chainState);
+  const refreshChain = useWalletStore((s) => s.refreshChain);
   const rank = levelFromXp(useProgressStore((s) => s.xp));
 
-  // On-chain the contract counts tournament games; otherwise the server does.
+  // Refresh chain state on mount so the gas check is immediately accurate.
+  useEffect(() => {
+    if (account && !chainState) void refreshChain();
+  }, [account, chainState, refreshChain]);
+
   const prizeLeft = onChainMode ? (chainState?.playsLeft ?? 0) : (player?.roundsLeft ?? 0);
   const busy = !player || status !== 'idle';
   const canPlay = hasCeloForGas(chainState?.celoBalance);
@@ -100,7 +96,7 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
     try {
       await startRound(mode);
     } catch (error) {
-      toast.error('Couldn’t start the game', error instanceof Error ? error.message : undefined);
+      toast.error('Couldn\u2019t start the game', error instanceof Error ? error.message : undefined);
       exit();
     }
   };
@@ -109,23 +105,7 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
     <>
       <section className="home-hero">
         <div className="hero-glow" aria-hidden />
-        {RAIN.map((drop) => (
-          <motion.span
-            key={drop.skin}
-            className="hero-drop"
-            style={{ left: drop.left, width: drop.size }}
-            initial={{ y: -80, rotate: -10 }}
-            animate={{ y: 380, rotate: 20 }}
-            transition={{ repeat: Infinity, duration: drop.duration, delay: drop.delay, ease: 'linear' }}
-            aria-hidden
-          >
-            <TokenArt skin={drop.skin} />
-          </motion.span>
-        ))}
 
-        <p className="hero-kicker">
-          <Zap size={13} fill="currentColor" /> Daily arcade on Celo
-        </p>
         <h1 className="hero-title">
           Pop. Streak.
           <br />
@@ -133,7 +113,7 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
         </h1>
         <p className="hero-copy">
           {tournamentsEnabled
-            ? 'Tap the treats before they fall. Free G$ every day, and G$ prizes for the week’s best scores.'
+            ? 'Tap the treats before they fall. Free G$ every day, and G$ prizes for the week\u2019s best scores.'
             : 'Tap the treats before they fall. Claim free G$ every day and climb the weekly board.'}
         </p>
 
@@ -164,7 +144,7 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
               </button>
             </div>
             <p className="hero-meta">
-              {prizeLeft} tournament {prizeLeft === 1 ? 'game' : 'games'} left today · tiny CELO network fee
+              {prizeLeft} tournament {prizeLeft === 1 ? 'game' : 'games'} left today &middot; tiny CELO network fee
             </p>
           </>
         ) : (
@@ -187,11 +167,11 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
       <section className="stat-strip">
         <div>
           <span className="stat-label">Best</span>
-          <strong className="num">{player ? player.bestScore.toLocaleString() : '–'}</strong>
+          <strong className="num">{player ? player.bestScore.toLocaleString() : '\u2013'}</strong>
         </div>
         <div>
           <span className="stat-label">This week</span>
-          <strong className="num">{player ? player.weeklyBest.toLocaleString() : '–'}</strong>
+          <strong className="num">{player ? player.weeklyBest.toLocaleString() : '\u2013'}</strong>
         </div>
         <div>
           <span className="stat-label">Level</span>

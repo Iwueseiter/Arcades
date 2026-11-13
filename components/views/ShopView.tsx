@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Crown, Gem, Package, Zap } from 'lucide-react';
-import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { isSignedIn } from '@/lib/access';
 import { api } from '@/lib/api';
 import { playSound } from '@/lib/audioManager';
@@ -29,14 +28,14 @@ export function ShopView() {
 
   const buy = async (item: ShopItem) => {
     if (!signedIn) {
-      toast.error('Sign in to pay', 'Connect a wallet or sign in with email first.');
+      toast.error('Sign in to pay', 'Sign in first.');
       return;
     }
     setPending(item.slug);
     try {
       if (onChainMode) {
         const ok = await buyOnChain(item.slug);
-        if (!ok) throw new Error('Connect your wallet to pay.');
+        if (!ok) throw new Error('Wallet required to pay.');
       } else {
         const { player: next } = await api.demoBuy(item.slug);
         setPlayer(next);
@@ -44,7 +43,7 @@ export function ShopView() {
       playSound('shop-purchase', 1);
       toast.success(`${item.name} unlocked`, `${item.price} G$ spent.`);
     } catch (error) {
-      toast.error('Couldn’t buy that', describeError(error));
+      toast.error('Couldn\u2019t buy that', describeError(error));
     } finally {
       setPending(null);
     }
@@ -64,23 +63,27 @@ export function ShopView() {
           <div style={{ textAlign: 'right' }}>
             <p className="eyebrow">Balance</p>
             <div className="title-md gold-text num" style={{ fontSize: '1.6rem' }}>
-              {balance === null ? '–' : `${formatG(balance)} G$`}
+              {balance === null ? '\u2013' : `${formatG(balance)} G$`}
             </div>
           </div>
         </div>
         <p className="copy" style={{ marginTop: 8 }}>
           {onChainMode
-            ? `Your items are saved to your wallet. 10% of what you spend goes to GoodDollar’s UBI pool${tournamentsEnabled ? ', and the rest to the tournament prize pot' : ''}.`
-            : 'Test mode: you’re spending play money for now.'}
+            ? `Your items are saved to your wallet. 10% of what you spend goes to GoodDollar\u2019s UBI pool${tournamentsEnabled ? ', and the rest to the tournament prize pot' : ''}.`
+            : 'Test mode: you\u2019re spending play money for now.'}
         </p>
         {!signedIn ? (
           <p className="copy" style={{ marginTop: 12 }}>
-            Sign in with a wallet or email to buy items. Guests can’t pay.
+            Sign in to buy items.
           </p>
         ) : needsWallet ? (
-          <div style={{ marginTop: 14 }}>
-            <ConnectButton block />
-          </div>
+          <p className="copy" style={{ marginTop: 12 }}>
+            Purchases are on-chain \u2014 you need a Celo wallet connected to pay. Sign in with a wallet or{' '}
+            <a href="https://wallet.gooddollar.org" target="_blank" rel="noreferrer" style={{ color: 'var(--orange)', fontWeight: 700 }}>
+              get the GoodDollar wallet
+            </a>
+            .
+          </p>
         ) : null}
       </div>
 

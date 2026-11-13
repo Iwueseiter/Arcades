@@ -39,6 +39,16 @@ export default function GasPage() {
     };
   }, [hasGas, account, refreshChain]);
 
+  // Auto-redirect to the game once CELO arrives
+  useEffect(() => {
+    if (hasGas && account) {
+      const timer = setTimeout(() => {
+        window.location.href = '/';
+      }, 1800); // brief pause so the success state is visible
+      return () => clearTimeout(timer);
+    }
+  }, [hasGas, account]);
+
   const copy = async () => {
     if (!account) return;
     await navigator.clipboard.writeText(account);
@@ -85,7 +95,7 @@ export default function GasPage() {
 
             {/* Wallet address — full address for easy copy */}
             {account ? (
-              <div className={`gas-balance ${celoBalance != null && celoBalance > 0 ? 'gas-balance--low' : 'gas-balance--low'}`}>
+              <div className="gas-balance gas-balance--low">
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <p className="eyebrow" style={{ marginBottom: 6 }}>Your Celo address</p>
                   <p className="gas-full-address num">{account}</p>

@@ -55,7 +55,7 @@ export function RewardsView({ onNavigate }: { onNavigate?: (tab: TabId) => void 
   const claimedToday = onChainMode ? Boolean(chainState?.verified && !chainState.canClaimDaily) : Boolean(demo?.claimedToday);
   const dailyAmount = onChainMode
     ? chainState?.dailyAmount || DEMO_DAILY
-    : DEMO_DAILY + DEMO_STREAK_BONUS * Math.min(claimedToday ? streak - 1 : streak, 7);
+    : DEMO_DAILY + DEMO_STREAK_BONUS * Math.min(Math.max(0, claimedToday ? streak - 1 : streak), 7);
   const needsVerification = Boolean(onChainMode && account && chainState && !chainState.verified);
   const giftUnavailable = Boolean(onChainMode && chainState?.verified && !chainState.canClaimDaily);
   const onClaimDaily = async () => {
@@ -153,7 +153,11 @@ export function RewardsView({ onNavigate }: { onNavigate?: (tab: TabId) => void 
                 <Trophy size={12} /> Weekly tournament
               </p>
               <p className="title-md num" style={{ marginTop: 4 }}>
-                {onChainMode ? `${formatG(pendingGame, 3)} G$ won, ready to collect` : 'Prizes go straight to your balance'}
+                {onChainMode && account
+                  ? `${formatG(pendingGame, 3)} G$ won, ready to collect`
+                  : onChainMode
+                  ? `${formatG(pendingGame, 3)} G$ won`
+                  : 'Prizes go straight to your balance'}
               </p>
             </div>
             {onChainMode && account && (

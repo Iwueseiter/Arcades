@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AudioManager } from '@/components/audio/AudioManager';
 import { PageViewTracker } from '@/components/analytics/PageViewTracker';
@@ -21,6 +21,7 @@ import { isSignedIn } from '@/lib/access';
 import { toast } from '@/lib/toast-store';
 
 export type TabId = 'play' | 'ranks' | 'shop' | 'rewards' | 'me';
+const TABS: TabId[] = ['play', 'ranks', 'shop', 'rewards', 'me'];
 
 export function AppShell({ initialTab }: { initialTab: TabId }) {
   const [tab, setTab] = useState<TabId>(initialTab);
@@ -32,14 +33,19 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
   // null = still loading | true = guest (show sign-in) | false = signed in (show app)
   const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
 
-  // Arriving from a magic-link email redirect.
+  // Track if the user arrived via ?signedin=email so we know to advance past the gate
+  const signedinRef = useRef(false);
+
+  // Handle ?signedin=email magic-link callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('signedin') !== 'email') return;
-    markWelcomed();
-    toast.success('You\u2019re signed in', 'Your progress is saved to your email.');
-    params.delete('signedin');
-    window.history.replaceState(null, '', params.size ? `/?${params}` : '/');
+    if (params.get('signedin') === 'email') {
+      signedinRef.current = true;
+      markWelcomed();
+      toast.success('You\u2019re signed in', 'Your progress is saved to your email.');
+      params.delete('signedin');
+      window.history.replaceState(null, '', params.size ? `/?${params}` : '/');
+    }
   }, []);
 
   // Load the player then initialise the wallet.
@@ -48,19 +54,37 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
   }, [refresh, initWallet]);
 
   // Once we know who the player is, decide what to show.
+  // If we know the user just signed in via email link, force past the gate
+  // even if /api/me returned an offlineGuest (network error).
   useEffect(() => {
     if (!player) return;
+    if (signedinRef.current) {
+      setShowWelcome(false);
+      return;
+    }
     setShowWelcome(!isSignedIn(player));
   }, [player]);
 
+  // Browser back/forward for tab navigation
+  useEffect(() => {
+    const onPop = () => {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get('tab') as TabId | null;
+      setTab(t && TABS.includes(t) ? t : 'play');
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   const selectTab = (next: TabId) => {
-    setTab(next);
     const url = next === 'play' ? '/' : `/?tab=${next}`;
-    window.history.replaceState(null, '', url);
+    // pushState so the browser back button navigates between tabs
+    window.history.pushState(null, '', url);
+    setTab(next);
     window.scrollTo({ top: 0 });
   };
 
-  // ── Loading — blank bg while /api/me resolves, no content flash ──────────
+  // ── Loading — blank bg while /api/me resolves ─────────────────────────────
   if (showWelcome === null) {
     return (
       <main className="app-shell">
