@@ -119,6 +119,11 @@ button:disabled {
   flex-direction: column;
 }
 
+.app-frame--loading {
+  /* Prevents a white flash while /api/me resolves. */
+  background: var(--bg);
+}
+
 @media (min-width: 520px) {
   .app-shell {
     padding: 24px 16px;
@@ -2021,6 +2026,7 @@ button:disabled {
   position: absolute;
   width: 44px;
   aspect-ratio: 1;
+  pointer-events: none;
   filter: drop-shadow(0 6px 8px rgba(26, 80, 140, 0.25));
 }
 
@@ -2125,6 +2131,52 @@ button:disabled {
   font-size: 0.8rem;
   line-height: 1.4;
   color: var(--muted);
+}
+
+/* welcome rule pills */
+
+.welcome-rules {
+  list-style: none;
+  margin: 16px 0 20px;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 400px;
+  text-align: left;
+}
+
+.welcome-rule {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 1px 3px rgba(22, 24, 29, 0.07), 0 4px 12px rgba(22, 24, 29, 0.05);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--ink);
+  backdrop-filter: blur(6px);
+}
+
+.welcome-rule strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  margin-bottom: 1px;
+}
+
+.welcome-rule-icon {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  margin-top: 1px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
 /* ---------- terms & privacy ---------- */
@@ -2244,6 +2296,63 @@ button:disabled {
   gap: 8px;
 }
 
+.email-signin-label {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* OTP step */
+
+.otp-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.otp-back {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: var(--panel-strong);
+  color: var(--ink);
+}
+
+.otp-sent-to {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.otp-input {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.3em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  height: 64px;
+}
+
+.otp-resend {
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font-size: 0.82rem;
+  color: var(--orange);
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+
 .email-row {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -2292,6 +2401,116 @@ button:disabled {
 
 .welcome-email {
   margin-top: 12px;
+}
+
+.gas-page {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  padding: 24px 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  background: var(--bg);
+}
+
+.gas-card {
+  width: min(420px, 100%);
+  padding: 28px 22px 22px;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 6px 0 #f0dcc6, 0 24px 50px rgba(110, 62, 30, 0.12);
+}
+
+.gas-address {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--orange) 8%, #fff);
+}
+
+/* --- enhanced gas page --- */
+
+.gas-why {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--yellow) 12%, #fff);
+  border: 1.5px solid color-mix(in srgb, var(--yellow) 40%, transparent);
+}
+
+.gas-why-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #ffc933, #d99a00);
+  color: #5c3a00;
+  box-shadow: 0 2px 6px rgba(217, 154, 0, 0.3);
+}
+
+.gas-why-title {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.gas-why-body {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.gas-balance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 16px;
+}
+
+.gas-balance--ok {
+  background: color-mix(in srgb, var(--mint) 10%, #fff);
+  border: 1.5px solid color-mix(in srgb, var(--mint) 35%, transparent);
+}
+
+.gas-balance--low {
+  background: color-mix(in srgb, var(--orange) 8%, #fff);
+  border: 1.5px solid color-mix(in srgb, var(--orange) 25%, transparent);
+}
+
+.gas-no-wallet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--panel-strong);
+  border: 1.5px dashed var(--line-strong);
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.gas-steps {
+  margin: 16px 0 18px;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 /* ---------- install & offline ---------- */

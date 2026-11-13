@@ -7,7 +7,9 @@ import { GameScreen } from '@/components/game/GameScreen';
 import { TokenArt } from '@/components/game/TokenArt';
 import type { TabId } from '@/components/shell/AppShell';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { CeloGasHelp } from '@/components/wallet/CeloGasHelp';
 import { UbiClaim } from '@/components/wallet/UbiClaim';
+import { hasCeloForGas } from '@/lib/access';
 import { onChainMode, tournamentsEnabled } from '@/lib/chain/config';
 import { useWalletStore } from '@/lib/chain/wallet-store';
 import type { Skin } from '@/lib/game-rules';
@@ -94,6 +96,7 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
   // On-chain the contract counts tournament games; otherwise the server does.
   const prizeLeft = onChainMode ? (chainState?.playsLeft ?? 0) : (player?.roundsLeft ?? 0);
   const busy = !player || status !== 'idle';
+  const canPlay = Boolean(account && hasCeloForGas(chainState?.celoBalance));
 
   const play = async (mode: PlayMode) => {
     try {
@@ -136,43 +139,52 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
             : 'Tap the treats before they fall. Claim free G$ every day and climb the weekly board.'}
         </p>
 
-        {tournamentsEnabled ? (
+        {!account ? (
           <>
             <div className="hero-actions">
-              {onChainMode && !account ? (
-                <ConnectButton block label="Connect wallet to join the tournament" />
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-primary btn-block hero-play"
-                  onClick={() => play('prize')}
-                  disabled={busy || prizeLeft <= 0}
-                >
-                  <Play size={20} fill="currentColor" strokeWidth={0} />
-                  {prizeLeft > 0 ? 'Tournament' : 'None left today'}
-                </button>
-              )}
+              <ConnectButton block label="Connect wallet to play" />
+            </div>
+            <p className="hero-meta">Playing needs a wallet with a little CELO for network fees.</p>
+          </>
+        ) : !hasCeloForGas(chainState?.celoBalance) ? (
+          <>
+            <div className="hero-actions">
+              <button type="button" className="btn btn-primary btn-block hero-play" disabled>
+                <Play size={20} fill="currentColor" strokeWidth={0} />
+                Need CELO to play
+              </button>
+            </div>
+            <CeloGasHelp />
+          </>
+        ) : tournamentsEnabled ? (
+          <>
+            <div className="hero-actions">
+              <button
+                type="button"
+                className="btn btn-primary btn-block hero-play"
+                onClick={() => play('prize')}
+                disabled={busy || prizeLeft <= 0}
+              >
+                <Play size={20} fill="currentColor" strokeWidth={0} />
+                {prizeLeft > 0 ? 'Tournament' : 'None left today'}
+              </button>
               <button type="button" className="btn btn-dark btn-block" onClick={() => play('free')} disabled={busy}>
                 Practice
               </button>
             </div>
             <p className="hero-meta">
-              {onChainMode && account
-                ? `${prizeLeft} tournament ${prizeLeft === 1 ? 'game' : 'games'} left today · tiny CELO network fee`
-                : onChainMode
-                  ? 'Practice needs no wallet.'
-                  : `${prizeLeft} tournament ${prizeLeft === 1 ? 'game' : 'games'} left today`}
+              {prizeLeft} tournament {prizeLeft === 1 ? 'game' : 'games'} left today · tiny CELO network fee
             </p>
           </>
         ) : (
           <>
             <div className="hero-actions">
-              <button type="button" className="btn btn-primary btn-block hero-play" onClick={() => play('free')} disabled={busy}>
+              <button type="button" className="btn btn-primary btn-block hero-play" onClick={() => play('free')} disabled={busy || !canPlay}>
                 <Play size={20} fill="currentColor" strokeWidth={0} />
                 Play
               </button>
             </div>
-            <p className="hero-meta">Free to play, as much as you like.</p>
+            <p className="hero-meta">A tiny CELO network fee is needed to play.</p>
           </>
         )}
       </section>

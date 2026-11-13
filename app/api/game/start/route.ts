@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { createPublicClient, http, isHash, parseEventLogs, type Hash } from 'viem';
+import { createPublicClient, formatUnits, http, isHash, parseEventLogs, type Hash } from 'viem';
+import { MIN_CELO_GAS } from '@/lib/access';
 import { tournamentsAbi } from '@/lib/chain/abi';
 import { chainConfig, onChainMode, tournamentsEnabled } from '@/lib/chain/config';
 import { MAX_ROUNDS_PER_DAY, getTodayKey } from '@/lib/game-rules';
@@ -28,6 +29,13 @@ async function paidStartHuman(hash: Hash, player: string) {
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { txHash?: string };
   const player = await getSessionPlayer();
+  if (!player.address) {
+    return NextResponse.json({ error: 'Connect a wallet with a little CELO to play' }, { status: 401 });
+  }
+  const celo = await publicClient.getBalance({ address: player.address as `0x${string}` }).catch(() => 0n);
+  if (Number(formatUnits(celo, 18)) < MIN_CELO_GAS) {
+    return NextResponse.json({ error: 'You need a little CELO for network fees. Request some on Telegram.' }, { status: 400 });
+  }
   const used = roundsUsedToday(player);
   let ranked = used < MAX_ROUNDS_PER_DAY;
   let txHash: string | null = null;

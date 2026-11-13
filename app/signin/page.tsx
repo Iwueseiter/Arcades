@@ -10,10 +10,15 @@ import { toast } from '@/lib/toast-store';
 export default function SignInPage() {
   const router = useRouter();
 
-  // Sent here when a sign-in link was already used or has expired.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('link') === 'expired') {
-      toast.error('That link has expired', 'Sign-in links work once, for 15 minutes. Ask for a new one below.');
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('link') === 'expired') {
+      toast.error('That link has expired', 'Sign-in links work once and last 15 minutes. Request a new one below.');
+      window.history.replaceState(null, '', '/signin');
+    }
+    // Arrived via /signup redirect — show a soft hint.
+    if (params.get('from') === 'signup') {
+      toast.info('Create your account below', 'Pick email or wallet — you can set your display name in your profile after.');
       window.history.replaceState(null, '', '/signin');
     }
   }, []);

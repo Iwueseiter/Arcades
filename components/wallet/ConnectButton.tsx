@@ -4,7 +4,15 @@ import { Wallet } from 'lucide-react';
 import { describeError, useWalletStore } from '@/lib/chain/wallet-store';
 import { toast } from '@/lib/toast-store';
 
-export function ConnectButton({ block = false, label = 'Connect wallet' }: { block?: boolean; label?: string }) {
+export function ConnectButton({
+  block = false,
+  label = 'Connect wallet',
+  onConnected,
+}: {
+  block?: boolean;
+  label?: string;
+  onConnected?: () => void;
+}) {
   const connect = useWalletStore((s) => s.connect);
   const status = useWalletStore((s) => s.status);
   const hasProvider = useWalletStore((s) => s.hasProvider);
@@ -12,7 +20,8 @@ export function ConnectButton({ block = false, label = 'Connect wallet' }: { blo
   const onClick = async () => {
     try {
       await connect();
-      toast.success('Wallet connected', 'You can now claim your free daily G$.');
+      toast.success('Wallet connected', 'You can now play and claim G$ once you’re verified.');
+      onConnected?.();
     } catch (error) {
       toast.error('Couldn’t connect', describeError(error));
     }

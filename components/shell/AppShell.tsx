@@ -8,7 +8,7 @@ import { BottomNav } from '@/components/shell/BottomNav';
 import { TopBar } from '@/components/shell/TopBar';
 import { TxOverlay } from '@/components/shell/TxOverlay';
 import { Toaster } from '@/components/ui/Toaster';
-import { Welcome, hasBeenWelcomed, markWelcomed } from '@/components/onboarding/Welcome';
+import { Welcome, markWelcomed } from '@/components/onboarding/Welcome';
 import { PlayView } from '@/components/views/PlayView';
 import { ProfileView } from '@/components/views/ProfileView';
 import { RanksView } from '@/components/views/RanksView';
@@ -17,6 +17,7 @@ import { ShopView } from '@/components/views/ShopView';
 import { useGameStore } from '@/lib/game-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { useWalletStore } from '@/lib/chain/wallet-store';
+import { isSignedIn } from '@/lib/access';
 import { toast } from '@/lib/toast-store';
 
 export type TabId = 'play' | 'ranks' | 'shop' | 'rewards' | 'me';
@@ -27,26 +28,30 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
   const initWallet = useWalletStore((s) => s.init);
   const inRound = useGameStore((s) => s.status !== 'idle');
   const player = usePlayerStore((s) => s.player);
-  const [welcome, setWelcome] = useState(false);
 
-  // First visit: show the sign-in screen once, unless they already have a name, a wallet or an email.
-  useEffect(() => {
-    if (player && !player.name && !player.address && !player.signedInEmail && !hasBeenWelcomed()) setWelcome(true);
-  }, [player]);
+  // null = still loading | true = guest (show sign-in) | false = signed in (show app)
+  const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
 
-  // Arriving from a sign-in email.
+  // Arriving from a magic-link email redirect.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('signedin') !== 'email') return;
     markWelcomed();
-    toast.success('You’re signed in', 'Your progress is saved to your email.');
+    toast.success('You\u2019re signed in', 'Your progress is saved to your email.');
     params.delete('signedin');
     window.history.replaceState(null, '', params.size ? `/?${params}` : '/');
   }, []);
 
+  // Load the player then initialise the wallet.
   useEffect(() => {
     void refresh().then(() => initWallet());
   }, [refresh, initWallet]);
+
+  // Once we know who the player is, decide what to show.
+  useEffect(() => {
+    if (!player) return; // still loading — keep the blank screen
+    setShowWelcome(!isSignedIn(player));
+  }, [player]);
 
   const selectTab = (next: TabId) => {
     setTab(next);
@@ -55,6 +60,28 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
     window.scrollTo({ top: 0 });
   };
 
+  // ── Loading — blank screen while /api/me resolves ──────────────────────────
+  if (showWelcome === null) {
+    return (
+      <main className="app-shell">
+        <div className="app-frame app-frame--loading" aria-label="Loading" aria-busy="true" />
+        <Toaster />
+      </main>
+    );
+  }
+
+  // ── Guest — sign-in screen, nothing else visible ───────────────────────────
+  if (showWelcome) {
+    return (
+      <main className="app-shell">
+        <Welcome standalone onDone={() => setShowWelcome(false)} />
+        <Toaster />
+        <AudioManager />
+      </main>
+    );
+  }
+
+  // ── Signed in — full app ───────────────────────────────────────────────────
   return (
     <main className="app-shell">
       <PageViewTracker path={tab === 'play' ? '/' : `/?tab=${tab}`} />
@@ -78,7 +105,6 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
         </AnimatePresence>
         {!inRound && <BottomNav active={tab} onSelect={selectTab} />}
       </div>
-      {welcome && <Welcome onDone={() => setWelcome(false)} />}
       <TxOverlay />
       <Toaster />
       <AudioManager />

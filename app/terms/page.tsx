@@ -12,7 +12,9 @@ export default function TermsPage() {
       <h2>Who can play</h2>
       <p>
         You must be old enough to use crypto apps{tournamentsEnabled ? ' and enter skill competitions with prizes' : ''} where you
-        live, and it must be legal for you to do so. You are responsible for checking this.
+        live, and it must be legal for you to do so. You are responsible for checking this. Playing needs a connected
+        wallet with a little CELO for network fees. Shop and pot boosts are for signed-in players only. Daily G$ claims
+        (GoodDollar and the Xurri gift) are for people who have completed GoodDollar’s face check.
       </p>
 
       <h2>How you can earn G$</h2>

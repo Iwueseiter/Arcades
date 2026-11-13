@@ -17,6 +17,9 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { action?: 'claim' | 'buy' | 'boost'; slug?: string; amount?: number };
   const player = await getSessionPlayer();
   const today = getTodayKey();
+  if ((body.action === 'buy' || body.action === 'boost') && !player.address && !player.loginEmail) {
+    return NextResponse.json({ error: 'Sign in with a wallet or email to pay' }, { status: 401 });
+  }
 
   if (body.action === 'claim') {
     if (player.demoLastClaim === today) return NextResponse.json({ error: 'Already claimed today' }, { status: 409 });

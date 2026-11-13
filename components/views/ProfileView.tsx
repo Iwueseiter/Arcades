@@ -110,7 +110,7 @@ export function ProfileView() {
         ) : (
           <>
             <p className="copy" style={{ margin: '6px 0 12px' }}>
-              Connect a wallet to claim free daily G$ and keep your items. Your progress comes with you.
+              Connect a wallet to play (you’ll need a little CELO for fees), claim G$ after a face check, and keep your items.
             </p>
             <ConnectButton block />
           </>
@@ -152,6 +152,9 @@ export function ProfileView() {
 
       <form className="card" onSubmit={save} style={{ display: 'grid', gap: 12 }}>
         <p className="eyebrow">Profile</p>
+        <p className="copy" style={{ margin: 0, fontSize: '0.84rem' }}>
+          This name shows on the weekly board. You can change it anytime.
+        </p>
         <div className="field">
           <label htmlFor="name">Your name</label>
           <input id="name" className="input" value={name} maxLength={20} placeholder="Player One" onChange={(e) => setName(e.target.value)} />

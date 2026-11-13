@@ -34,8 +34,9 @@ export function UbiClaim({ compact = false }: { compact?: boolean }) {
   const claim = async () => {
     try {
       const amount = await claimUbi();
+      if (amount == null) throw new Error('Connect a verified wallet to claim G$.');
       playSound('score-milestone', 1);
-      toast.success(`+${formatG(amount ?? 0)} G$ claimed`, 'Your free GoodDollar is in your wallet. Come back tomorrow for more.');
+      toast.success(`+${formatG(amount)} G$ claimed`, 'Your free GoodDollar is in your wallet. Come back tomorrow for more.');
     } catch (error) {
       toast.error('Couldn’t claim', describeError(error));
     }
