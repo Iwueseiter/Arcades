@@ -2,15 +2,17 @@
 
 import { useState, type FormEvent } from 'react';
 import { Mail } from 'lucide-react';
+import { getAddress, isAddress } from 'viem';
 import { getMagic } from '@/lib/magic';
 import { api } from '@/lib/api';
 import { usePlayerStore } from '@/lib/player-store';
+import { useWalletStore } from '@/lib/chain/wallet-store';
 import { toast } from '@/lib/toast-store';
 
 /**
- * Email sign-in via Magic (magic.link).
- * Magic handles sending the OTP email and showing the code-entry UI.
- * Once the user verifies, we get a DIDToken and exchange it for a session.
+ * Two-step email sign-in via Magic.
+ * Magic sends the OTP, verifies it, and creates a non-custodial wallet for the user.
+ * That wallet address is saved to the player and used for on-chain game transactions.
  */
 export function EmailSignIn({ compact = false }: { compact?: boolean }) {
   const setPlayer = usePlayerStore((s) => s.setPlayer);
@@ -21,16 +23,24 @@ export function EmailSignIn({ compact = false }: { compact?: boolean }) {
     event.preventDefault();
     setLoading(true);
     try {
-      // Magic opens its own OTP modal — sends the email, collects the code, returns a DIDToken.
+      // Magic opens its OTP modal, sends the email, collects the code, returns a DIDToken.
       const didToken = await getMagic().auth.loginWithEmailOTP({ email: email.trim() });
       if (!didToken) throw new Error('Sign-in was cancelled.');
 
-      // Exchange the DIDToken for an Xurri session.
+      // Exchange DIDToken for an Xurri session — server saves the Magic wallet address.
       const player = await api.verifyOtp(didToken);
       setPlayer(player);
+
+      // Seed the wallet store with the Magic-created address so the play screen works.
+      if (player.address && isAddress(player.address)) {
+        const account = getAddress(player.address);
+        useWalletStore.setState({ account, hasProvider: false });
+        // Load on-chain balances in the background.
+        void useWalletStore.getState().refreshChain();
+      }
+
       toast.success('Signed in', 'Welcome to Xurri!');
     } catch (error) {
-      // Magic throws when the user dismisses the modal — treat that silently.
       const msg = error instanceof Error ? error.message : '';
       if (!msg.toLowerCase().includes('cancel') && !msg.toLowerCase().includes('dismiss')) {
         toast.error('Sign-in failed', msg || 'Please try again.');
@@ -64,7 +74,7 @@ export function EmailSignIn({ compact = false }: { compact?: boolean }) {
         disabled={loading || !email.includes('@')}
       >
         {loading ? <span className="spinner" /> : <Mail size={18} />}
-        {loading ? 'Sending code\u2026' : 'Sign in'}
+        {loading ? 'Signing in\u2026' : 'Sign in'}
       </button>
     </form>
   );

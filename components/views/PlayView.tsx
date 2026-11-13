@@ -6,7 +6,6 @@ import { Check, Play, Zap } from 'lucide-react';
 import { GameScreen } from '@/components/game/GameScreen';
 import { TokenArt } from '@/components/game/TokenArt';
 import type { TabId } from '@/components/shell/AppShell';
-import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { CeloGasHelp } from '@/components/wallet/CeloGasHelp';
 import { UbiClaim } from '@/components/wallet/UbiClaim';
 import { hasCeloForGas } from '@/lib/access';
@@ -89,14 +88,13 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
   const status = useGameStore((s) => s.status);
   const startRound = useGameStore((s) => s.startRound);
   const exit = useGameStore((s) => s.exit);
-  const account = useWalletStore((s) => s.account);
   const chainState = useWalletStore((s) => s.chainState);
   const rank = levelFromXp(useProgressStore((s) => s.xp));
 
   // On-chain the contract counts tournament games; otherwise the server does.
   const prizeLeft = onChainMode ? (chainState?.playsLeft ?? 0) : (player?.roundsLeft ?? 0);
   const busy = !player || status !== 'idle';
-  const canPlay = Boolean(account && hasCeloForGas(chainState?.celoBalance));
+  const canPlay = hasCeloForGas(chainState?.celoBalance);
 
   const play = async (mode: PlayMode) => {
     try {
@@ -139,16 +137,17 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
             : 'Tap the treats before they fall. Claim free G$ every day and climb the weekly board.'}
         </p>
 
-        {!account ? (
+        {!hasCeloForGas(chainState?.celoBalance) ? (
           <>
             <div className="hero-actions">
-              <ConnectButton block label="Connect wallet to play" />
+              <button type="button" className="btn btn-primary btn-block hero-play" disabled>
+                <Play size={20} fill="currentColor" strokeWidth={0} />
+                Need CELO to play
+              </button>
             </div>
-            <p className="hero-meta">
-              You're signed in. Connect a Celo wallet to start playing — it pays the tiny network fee.
-            </p>
+            <CeloGasHelp />
           </>
-        ) : !hasCeloForGas(chainState?.celoBalance) ? (
+        ) : tournamentsEnabled ? (
           <>
             <div className="hero-actions">
               <button type="button" className="btn btn-primary btn-block hero-play" disabled>
