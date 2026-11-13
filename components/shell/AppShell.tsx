@@ -30,7 +30,7 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
   const player = usePlayerStore((s) => s.player);
 
   // null = still loading | true = guest (show sign-in) | false = signed in (show app)
-  const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
+  const [showWelcome, setShowWelcome] = useState<boolean | null>(true); // default to sign-in until confirmed
 
   // Arriving from a magic-link email redirect.
   useEffect(() => {
@@ -47,17 +47,9 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
     void refresh().then(() => initWallet());
   }, [refresh, initWallet]);
 
-  // Safety net: if loading takes more than 6 seconds, force to sign-in screen.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowWelcome((prev) => (prev === null ? true : prev));
-    }, 6000);
-    return () => clearTimeout(timer);
-  }, []);
-
   // Once we know who the player is, decide what to show.
   useEffect(() => {
-    if (!player) return; // still loading — keep the blank screen
+    if (!player) return;
     setShowWelcome(!isSignedIn(player));
   }, [player]);
 
@@ -67,16 +59,6 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
     window.history.replaceState(null, '', url);
     window.scrollTo({ top: 0 });
   };
-
-  // ── Loading — blank screen while /api/me resolves ──────────────────────────
-  if (showWelcome === null) {
-    return (
-      <main className="app-shell">
-        <div className="app-frame app-frame--loading" aria-label="Loading" aria-busy="true" />
-        <Toaster />
-      </main>
-    );
-  }
 
   // ── Guest — sign-in screen, nothing else visible ───────────────────────────
   if (showWelcome) {
