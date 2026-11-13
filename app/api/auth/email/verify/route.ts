@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       email = metadata.email.trim().toLowerCase();
       // Magic creates a non-custodial wallet for every email user.
       if (metadata.publicAddress && isAddress(metadata.publicAddress)) {
-        walletAddress = getAddress(metadata.publicAddress).toLowerCase();
+        walletAddress = getAddress(metadata.publicAddress).toLowerCase(); // lowercase, consistent with wallet-auth
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

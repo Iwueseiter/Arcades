@@ -30,7 +30,7 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
   const player = usePlayerStore((s) => s.player);
 
   // null = still loading | true = guest (show sign-in) | false = signed in (show app)
-  const [showWelcome, setShowWelcome] = useState<boolean | null>(true); // default to sign-in until confirmed
+  const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
 
   // Arriving from a magic-link email redirect.
   useEffect(() => {
@@ -59,6 +59,17 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
     window.history.replaceState(null, '', url);
     window.scrollTo({ top: 0 });
   };
+
+  // ── Loading — show sign-in screen while /api/me resolves ─────────────────
+  if (showWelcome === null) {
+    return (
+      <main className="app-shell">
+        <Welcome standalone onDone={() => setShowWelcome(false)} />
+        <Toaster />
+        <AudioManager />
+      </main>
+    );
+  }
 
   // ── Guest — sign-in screen, nothing else visible ───────────────────────────
   if (showWelcome) {

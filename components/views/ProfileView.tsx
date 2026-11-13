@@ -43,8 +43,14 @@ export function ProfileView() {
     }
   };
 
-  const signOut = () =>
-    disconnect().then(() => toast.info('Signed out', 'Sign back in anytime.'));
+  const signOut = async () => {
+    try {
+      await disconnect();
+      toast.info('Signed out', 'Sign back in anytime.');
+    } catch {
+      toast.error('Sign out failed', 'Please try again.');
+    }
+  };
 
   const isVip = owned.includes('vip-pass');
   const displayName = player?.displayName ?? 'Player';

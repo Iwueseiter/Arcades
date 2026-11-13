@@ -188,7 +188,7 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
     const accounts = (await provider.request({ method: 'eth_accounts' }).catch(() => [])) as string[];
     const current = accounts[0] ? getAddress(accounts[0]) : null;
 
-    if (current && player?.address && player.address === current.toLowerCase()) {
+    if (current && player?.address && player.address.toLowerCase() === current.toLowerCase()) {
       set({ account: current });
       void get().refreshChain();
     }

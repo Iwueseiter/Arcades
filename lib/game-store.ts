@@ -244,10 +244,10 @@ export const useGameStore = create<GameState & GameActions>()(
 
           try {
             const wallet = useWalletStore.getState();
-            if (!wallet.account) throw new Error('Connect your wallet to play.');
+            if (!wallet.account) throw new Error('Sign in to play.');
             if (!wallet.chainState) await wallet.refreshChain();
             if (!hasCeloForGas(useWalletStore.getState().chainState?.celoBalance)) {
-              throw new Error('You need a little CELO for network fees. Request some on Telegram.');
+              throw new Error('You need a little CELO for network fees. Request some in the Telegram group.');
             }
             const txHash = tournamentsEnabled && mode === 'prize' && onChainMode && wallet.account ? await wallet.startGameTx() : undefined;
             const round = await api.startRound(txHash);

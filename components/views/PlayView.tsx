@@ -150,16 +150,6 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
         ) : tournamentsEnabled ? (
           <>
             <div className="hero-actions">
-              <button type="button" className="btn btn-primary btn-block hero-play" disabled>
-                <Play size={20} fill="currentColor" strokeWidth={0} />
-                Need CELO to play
-              </button>
-            </div>
-            <CeloGasHelp />
-          </>
-        ) : tournamentsEnabled ? (
-          <>
-            <div className="hero-actions">
               <button
                 type="button"
                 className="btn btn-primary btn-block hero-play"
