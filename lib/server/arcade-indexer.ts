@@ -3,7 +3,7 @@ import { chainConfig } from '@/lib/chain/config';
 import { prisma } from '@/lib/prisma';
 import { publicClient } from '@/lib/server/chain';
 
-const BLOCKS_PER_SYNC = 10_000n;
+const BLOCKS_PER_SYNC = 4_000n;
 const FINALITY_BUFFER = 5n;
 
 /** Events from the three Xurri contracts that the analytics page counts. */
