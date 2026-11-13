@@ -17,10 +17,11 @@ export async function GET(request: Request) {
     try {
       chainIndex = await syncArcadeEvents();
     } catch (error) {
-      console.error('Arcade contract event indexing failed', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error('Arcade contract event indexing failed:', msg);
       chainIndex = {
         status: 'error',
-        message: 'Check the RPC endpoint, contract address and deployment block configuration.',
+        message: msg,
       };
     }
   }
