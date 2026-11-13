@@ -60,13 +60,12 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
     window.scrollTo({ top: 0 });
   };
 
-  // ── Loading — show sign-in screen while /api/me resolves ─────────────────
+  // ── Loading — blank bg while /api/me resolves, no content flash ──────────
   if (showWelcome === null) {
     return (
       <main className="app-shell">
-        <Welcome standalone onDone={() => setShowWelcome(false)} />
+        <div className="app-frame app-frame--loading" aria-busy="true" />
         <Toaster />
-        <AudioManager />
       </main>
     );
   }
@@ -88,14 +87,14 @@ export function AppShell({ initialTab }: { initialTab: TabId }) {
       <PageViewTracker path={tab === 'play' ? '/' : `/?tab=${tab}`} />
       <div className="app-frame">
         <TopBar onOpenProfile={() => selectTab('me')} />
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.section
             key={tab}
             className="app-content"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
           >
             {tab === 'play' && <PlayView onNavigate={selectTab} />}
             {tab === 'ranks' && <RanksView onNavigate={selectTab} />}
