@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node --experimental-require-module ./node_modules/next/dist/bin/next dev",
     "build": "node --experimental-require-module ./node_modules/next/dist/bin/next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && node --experimental-require-module ./node_modules/next/dist/bin/next build",
     "start": "node --experimental-require-module ./node_modules/next/dist/bin/next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
