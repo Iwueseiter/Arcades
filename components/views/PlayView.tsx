@@ -144,7 +144,9 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
             <div className="hero-actions">
               <ConnectButton block label="Connect wallet to play" />
             </div>
-            <p className="hero-meta">Playing needs a wallet with a little CELO for network fees.</p>
+            <p className="hero-meta">
+              You're signed in. Connect a Celo wallet to start playing — it pays the tiny network fee.
+            </p>
           </>
         ) : !hasCeloForGas(chainState?.celoBalance) ? (
           <>
