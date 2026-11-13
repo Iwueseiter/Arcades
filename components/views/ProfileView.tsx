@@ -1,10 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { EmailSignIn } from '@/components/auth/EmailSignIn';
 import { useEffect, useState, type FormEvent } from 'react';
-import { ExternalLink, LogOut, Mail, Music, ShieldCheck, Volume2, Vibrate, Wallet } from 'lucide-react';
-import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { ExternalLink, LogOut, Music, ShieldCheck, Volume2, Vibrate, Wallet } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { api } from '@/lib/api';
 import { chainConfig, onChainMode } from '@/lib/chain/config';
@@ -39,26 +37,35 @@ export function ProfileView() {
       setPlayer(await api.updateMe({ name, email }));
       toast.success('Profile saved');
     } catch (error) {
-      toast.error('Couldn’t save', describeError(error));
+      toast.error('Couldn\u2019t save', describeError(error));
     } finally {
       setSaving(false);
     }
   };
 
+  const signOut = () =>
+    disconnect().then(() => toast.info('Signed out', 'Sign back in anytime.'));
+
   const isVip = owned.includes('vip-pass');
-  const displayName = player?.displayName ?? 'Guest';
+  const displayName = player?.displayName ?? 'Player';
   const dirty = player && (name !== player.name || email !== player.email);
+
+  // The address shown — prefer the connected wallet account, fall back to player.address
+  const walletAddress = account ?? player?.address ?? null;
 
   return (
     <>
+      {/* ── Header ── */}
       <div className="card card-hero" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <Avatar name={displayName} size={64} />
         <div style={{ minWidth: 0 }}>
-          <p className="eyebrow">{isVip ? '👑 VIP player' : account ? 'Wallet connected' : 'Playing as guest'}</p>
+          <p className="eyebrow">
+            {isVip ? '\uD83D\uDC51 VIP player' : player?.signedInEmail ? 'Signed in with email' : 'Signed in with wallet'}
+          </p>
           <h1 className="title-xl" style={{ fontSize: '1.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {displayName}
           </h1>
-          {account && chainState?.verified && onChainMode && (
+          {chainState?.verified && onChainMode && (
             <span className="badge badge-mint" style={{ marginTop: 6 }}>
               <ShieldCheck size={12} /> Face check done
             </span>
@@ -66,90 +73,60 @@ export function ProfileView() {
         </div>
       </div>
 
+      {/* ── Stats ── */}
       <div className="stat-grid">
         <div className="stat">
           <p className="eyebrow">Best</p>
-          <div className="stat-value num">{player?.bestScore.toLocaleString() ?? '–'}</div>
+          <div className="stat-value num">{player?.bestScore.toLocaleString() ?? '\u2013'}</div>
         </div>
         <div className="stat">
           <p className="eyebrow">Games</p>
-          <div className="stat-value num">{player?.gamesPlayed ?? '–'}</div>
+          <div className="stat-value num">{player?.gamesPlayed ?? '\u2013'}</div>
         </div>
         <div className="stat">
           <p className="eyebrow">All points</p>
-          <div className="stat-value num">{player ? Intl.NumberFormat(undefined, { notation: 'compact' }).format(player.totalScore) : '–'}</div>
+          <div className="stat-value num">
+            {player ? Intl.NumberFormat(undefined, { notation: 'compact' }).format(player.totalScore) : '\u2013'}
+          </div>
         </div>
       </div>
 
-      <div className="card">
-        <p className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <Wallet size={12} /> Wallet
-        </p>
-        {account ? (
-          <>
-            <div className="row" style={{ marginTop: 8 }}>
-              <div>
-                <p className="title-md num">{shortAddress(account)}</p>
-                <p className="copy" style={{ fontSize: '0.8rem' }}>
-                  {chainConfig.chain.name}
-                </p>
-              </div>
-              <a className="icon-btn" href={`${chainConfig.explorerUrl}/address/${account}`} target="_blank" rel="noreferrer" aria-label="View on explorer">
-                <ExternalLink size={16} />
-              </a>
+      {/* ── Wallet info (read-only, no connect prompt) ── */}
+      {walletAddress && (
+        <div className="card">
+          <p className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Wallet size={12} /> Wallet
+          </p>
+          <div className="row" style={{ marginTop: 8 }}>
+            <div>
+              <p className="title-md num">{shortAddress(walletAddress)}</p>
+              <p className="copy" style={{ fontSize: '0.8rem' }}>{chainConfig.chain.name}</p>
             </div>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm btn-block"
-              style={{ marginTop: 12 }}
-              onClick={() => disconnect().then(() => toast.info('Signed out', 'You’re playing as a guest now.'))}
+            <a
+              className="icon-btn"
+              href={`${chainConfig.explorerUrl}/address/${walletAddress}`}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="View on explorer"
             >
-              <LogOut size={16} /> Sign out
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="copy" style={{ margin: '6px 0 12px' }}>
-              Connect a wallet to play (you’ll need a little CELO for fees), claim G$ after a face check, and keep your items.
-            </p>
-            <ConnectButton block />
-          </>
-        )}
-      </div>
+              <ExternalLink size={16} />
+            </a>
+          </div>
+        </div>
+      )}
 
+      {/* ── Sign out ── */}
       <div className="card">
-        <p className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <Mail size={12} /> Email sign-in
-        </p>
-        {player?.signedInEmail ? (
-          <>
-            <p className="title-md" style={{ marginTop: 8, overflowWrap: 'anywhere' }}>
-              {player.signedInEmail}
-            </p>
-            <p className="copy" style={{ fontSize: '0.8rem' }}>
-              Sign in with this email on any device to get your progress back.
-            </p>
-            {!account && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm btn-block"
-                style={{ marginTop: 12 }}
-                onClick={() => disconnect().then(() => toast.info('Signed out', 'You’re playing as a guest now.'))}
-              >
-                <LogOut size={16} /> Sign out
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            <p className="copy" style={{ margin: '6px 0 12px' }}>
-              Keep your scores and items safe, and pick up on any device.
-            </p>
-            <EmailSignIn compact />
-          </>
-        )}
+        <button
+          type="button"
+          className="btn btn-ghost btn-block"
+          onClick={signOut}
+        >
+          <LogOut size={16} /> Sign out
+        </button>
       </div>
 
+      {/* ── Profile form ── */}
       <form className="card" onSubmit={save} style={{ display: 'grid', gap: 12 }}>
         <p className="eyebrow">Profile</p>
         <p className="copy" style={{ margin: 0, fontSize: '0.84rem' }}>
@@ -168,6 +145,7 @@ export function ProfileView() {
         </button>
       </form>
 
+      {/* ── Owned items ── */}
       {owned.length > 0 && (
         <div className="card">
           <p className="eyebrow">Your items</p>
@@ -181,6 +159,7 @@ export function ProfileView() {
         </div>
       )}
 
+      {/* ── Settings ── */}
       <div className="card" style={{ display: 'grid', gap: 14 }}>
         <p className="eyebrow">Settings</p>
         <div className="row">
@@ -204,9 +183,9 @@ export function ProfileView() {
       </div>
 
       <p className="copy" style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--faint)' }}>
-        {onChainMode ? 'Prizes are paid in G$' : 'Test mode · real prizes start soon'}
+        {onChainMode ? 'Prizes are paid in G$' : 'Test mode \u00b7 real prizes start soon'}
         <br />
-        <Link href="/stats">Stats</Link> · <Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link>
+        <Link href="/stats">Stats</Link> \u00b7 <Link href="/terms">Terms</Link> \u00b7 <Link href="/privacy">Privacy</Link>
       </p>
     </>
   );
