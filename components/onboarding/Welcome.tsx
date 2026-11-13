@@ -95,7 +95,7 @@ export function Welcome({ onDone, standalone = false }: { onDone: () => void; st
               <Check size={16} /> Wallet connected · {shortAddress(player.address)}
             </p>
           ) : (
-            <ConnectButton block label="Connect wallet" onConnected={finish} />
+            <ConnectButton block label="Sign in with wallet" onConnected={finish} />
           )}
 
           <p className="welcome-note">
