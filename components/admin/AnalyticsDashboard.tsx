@@ -98,7 +98,7 @@ export function AnalyticsDashboard() {
       chainMessage = `Waiting for configured deployment block. Current chain height: ${data.chainIndex.latestBlock}.`;
       break;
     case 'syncing':
-      chainMessage = `Indexing contract history through block ${data.chainIndex.indexedThrough} of ${data.chainIndex.latestBlock}. Totals update as indexing progresses.`;
+      chainMessage = '';
       break;
     case 'synced':
       chainMessage = `Contract history indexed through block ${data.chainIndex.indexedThrough}.`;
