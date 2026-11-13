@@ -2,7 +2,6 @@
 
 import { Wallet } from 'lucide-react';
 import { describeError, useWalletStore } from '@/lib/chain/wallet-store';
-import { telegramGasUrl } from '@/lib/access';
 import { toast } from '@/lib/toast-store';
 
 export function ConnectButton({
@@ -28,17 +27,17 @@ export function ConnectButton({
     }
   };
 
-  // No wallet detected — guide them to Telegram to get help and request CELO
+  // No wallet detected — still show the button, clicking it will prompt them to install one
   if (!hasProvider) {
     return (
-      <a
-        className={`btn btn-ghost ${block ? 'btn-block' : 'btn-sm'}`}
-        href={telegramGasUrl}
-        target="_blank"
-        rel="noreferrer"
+      <button
+        type="button"
+        className={`btn btn-primary ${block ? 'btn-block' : 'btn-sm'}`}
+        onClick={onClick}
+        disabled={status !== 'idle'}
       >
-        <Wallet size={18} /> No wallet? Request CELO on Telegram
-      </a>
+        <Wallet size={18} /> {label}
+      </button>
     );
   }
 
