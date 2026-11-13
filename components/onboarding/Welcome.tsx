@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
+import { EmailSignIn } from '@/components/auth/EmailSignIn';
 import { Logo } from '@/components/brand/Logo';
 import { TokenArt } from '@/components/game/TokenArt';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
@@ -116,11 +117,21 @@ export function Welcome({ onDone, standalone = false }: { onDone: () => void; st
           ) : (
             <ConnectButton block label="Connect wallet" />
           )}
+        </form>
+
+        <div className="welcome-card welcome-email">
+          {player?.signedInEmail ? (
+            <p className="welcome-connected">
+              <Check size={16} /> Signed in as {player.signedInEmail}
+            </p>
+          ) : (
+            <EmailSignIn />
+          )}
           <p className="welcome-note">
-            Connect a wallet for free daily G$. No wallet? You can still play. By playing you
+            Connect a wallet for free daily G$, or sign in with email to keep your progress on any device. By playing you
             agree to our <Link href="/terms">terms</Link> and <Link href="/privacy">privacy</Link> notes.
           </p>
-        </form>
+        </div>
       </div>
     </div>
   );

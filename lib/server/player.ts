@@ -29,6 +29,7 @@ export function guestSnapshot(): PlayerSnapshot {
   return toSnapshot({
     id: '',
     address: null,
+    loginEmail: null,
     identityRoot: null,
     name: '',
     email: '',
@@ -57,6 +58,7 @@ export function toSnapshot(player: Player): PlayerSnapshot {
     displayName: displayName(player),
     email: player.email,
     address: player.address,
+    signedInEmail: player.loginEmail,
     bestScore: player.bestScore,
     weeklyBest: player.weekKey === getWeekKey() ? player.weeklyBest : 0,
     gamesPlayed: player.gamesPlayed,

@@ -2236,3 +2236,125 @@ button:disabled {
 .stats ul a {
   word-break: break-all;
 }
+
+/* ---------- email sign-in ---------- */
+
+.email-signin {
+  display: grid;
+  gap: 8px;
+}
+
+.email-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.email-row .btn {
+  padding-inline: 16px;
+}
+
+.email-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.email-sent {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--orange) 9%, #fff);
+  color: var(--ink);
+}
+
+.email-sent svg {
+  flex-shrink: 0;
+  color: var(--orange);
+}
+
+.email-sent p {
+  font-size: 0.85rem;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--orange);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.welcome-email {
+  margin-top: 12px;
+}
+
+/* ---------- install & offline ---------- */
+
+.install-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 14px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid rgba(22, 24, 29, 0.08);
+  box-shadow: 0 8px 24px rgba(22, 24, 29, 0.06);
+}
+
+.install-card img {
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.install-text {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.install-text strong {
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.install-text svg {
+  vertical-align: -2px;
+}
+
+.install-close {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.offline {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.offline h1 {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.offline p {
+  max-width: 300px;
+  color: var(--muted);
+}

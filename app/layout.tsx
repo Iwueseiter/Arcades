@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { Manrope, Outfit } from 'next/font/google';
 import './globals.css';
+import { ServiceWorker } from '@/components/pwa/ServiceWorker';
 
 const display = Outfit({
   variable: '--font-heading',
@@ -18,7 +19,7 @@ const body = Manrope({
 export const metadata: Metadata = {
   title: 'Xurri: pop treats, win G$',
   description: 'A fast, bright tap game on Celo. Claim free G$ every day and climb the weekly board.',
-  manifest: '/manifest.webmanifest',
+  icons: { apple: '/icons/apple-touch-icon.png' },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -30,13 +31,16 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#fff4e4',
+  themeColor: '#f6f3ee',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${body.variable} ${display.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <ServiceWorker />
+      </body>
     </html>
   );
 }

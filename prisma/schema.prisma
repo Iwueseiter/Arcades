@@ -13,6 +13,8 @@ datasource db {
 model Player {
   id            String            @id @default(cuid())
   address       String?           @unique
+  /// Email the player signs in with through a magic link. Set only after the link is opened.
+  loginEmail    String?           @unique
   /// GoodDollar identity behind the wallet. Several wallets can share one person; tournaments count each person once.
   identityRoot  String?
   name          String            @default("")
@@ -134,4 +136,16 @@ model ArcadeIndexState {
   id               String   @id
   lastIndexedBlock BigInt
   updatedAt        DateTime @updatedAt
+}
+
+/// A one-time sign-in link sent by email. Only a hash of the token is stored, so a database leak can't be used to sign in.
+model EmailLoginToken {
+  id        String    @id @default(cuid())
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
 }
