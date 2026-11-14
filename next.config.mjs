@@ -7,9 +7,28 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? Date.now().toString(36),
   },
+  // Some RainbowKit/wagmi sub-dependencies reference optional packages that aren't installed.
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      '@x402/core/client': false,
+      '@x402/evm': false,
+      '@x402/evm/exact/client': false,
+      '@x402/evm/upto/client': false,
+      '@x402/svm/exact/client': false,
+    };
+    return config;
+  },
   turbopack: {
     // A stray package-lock.json in the home directory otherwise confuses root detection.
     root: fileURLToPath(new URL('.', import.meta.url)),
+    resolveAlias: {
+      '@x402/core/client': { browser: false },
+      '@x402/evm': { browser: false },
+      '@x402/evm/exact/client': { browser: false },
+      '@x402/evm/upto/client': { browser: false },
+      '@x402/svm/exact/client': { browser: false },
+    },
   },
   async headers() {
     return [

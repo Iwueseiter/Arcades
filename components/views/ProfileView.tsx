@@ -2,23 +2,66 @@
 
 import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
-import { ExternalLink, LogOut, Music, ShieldCheck, Volume2, Vibrate, Wallet } from 'lucide-react';
+import { ExternalLink, LogOut, Music, ShieldCheck, Trophy, Volume2, Vibrate, Wallet } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { api } from '@/lib/api';
-import { chainConfig, onChainMode } from '@/lib/chain/config';
+import { chainConfig, onChainMode, tournamentsEnabled } from '@/lib/chain/config';
 import { describeError, useWalletStore } from '@/lib/chain/wallet-store';
-import { shortAddress } from '@/lib/format';
+import { formatG, shortAddress } from '@/lib/format';
 import { usePlayerStore } from '@/lib/player-store';
 import { useSettingsStore } from '@/lib/settings-store';
 import { toast } from '@/lib/toast-store';
-import { useOwnedItems } from '@/lib/use-economy';
+import { useOwnedItems, usePendingPrizes } from '@/lib/use-economy';
 import { SHOP_ITEMS } from '@/lib/shop-catalog';
+
+function TournamentCard() {
+  const player = usePlayerStore((s) => s.player);
+  const { account, chainState, claimPrizes } = useWalletStore();
+  const pendingGame = usePendingPrizes();
+  const playsLeft = chainState?.playsLeft ?? 0;
+
+  const collect = async () => {
+    try {
+      const amount = await claimPrizes();
+      if (amount == null) throw new Error('Could not collect prizes.');
+      toast.success(`+${formatG(amount, 3)} G$ collected`, 'Your tournament prizes are in your wallet.');
+    } catch (error) {
+      toast.error('Could\u2019t collect', describeError(error));
+    }
+  };
+
+  return (
+    <div className="card" style={{ borderTop: '3px solid var(--orange)' }}>
+      <p className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <Trophy size={12} /> Weekly tournament
+      </p>
+      <p className="copy" style={{ marginTop: 6, fontSize: '0.84rem' }}>
+        You are GoodDollar-verified. You can join the weekly tournament and win G$ prizes.
+      </p>
+      <div className="row" style={{ marginTop: 10 }}>
+        <div>
+          <p className="eyebrow">Plays left today</p>
+          <p className="title-md num" style={{ marginTop: 2 }}>{playsLeft}</p>
+        </div>
+        {pendingGame > 0 && account && (
+          <button type="button" className="btn btn-primary btn-sm" onClick={collect}>
+            Collect {formatG(pendingGame, 3)} G$
+          </button>
+        )}
+      </div>
+      {player && player.earned > 0 && (
+        <p className="copy" style={{ fontSize: '0.78rem', marginTop: 8, color: 'var(--muted)' }}>
+          Total won: {formatG(player.earned, 3)} G$
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function ProfileView() {
   const player = usePlayerStore((s) => s.player);
   const setPlayer = usePlayerStore((s) => s.setPlayer);
-  const { account, chainState, disconnect } = useWalletStore();
-  const { muted, music, haptics, toggleMuted, toggleMusic, toggleHaptics } = useSettingsStore();
+  const { account, chainState, disconnect } = useWalletStore();  const { muted, music, haptics, toggleMuted, toggleMusic, toggleHaptics } = useSettingsStore();
   const owned = useOwnedItems();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -123,14 +166,13 @@ export function ProfileView() {
 
       {/* ── Sign out ── */}
       <div className="card">
-        <button
-          type="button"
-          className="btn btn-ghost btn-block"
-          onClick={signOut}
-        >
+        <button type="button" className="btn btn-ghost btn-block" onClick={signOut}>
           <LogOut size={16} /> Sign out
         </button>
       </div>
+
+      {/* ── Tournament — verified wallets only ── */}
+      {tournamentsEnabled && onChainMode && chainState?.verified && <TournamentCard />}
 
       {/* ── Profile form ── */}
       <form className="card" onSubmit={save} style={{ display: 'grid', gap: 12 }}>

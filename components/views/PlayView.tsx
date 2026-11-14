@@ -9,27 +9,36 @@ import type { TabId } from '@/components/shell/AppShell';
 import { CeloGasHelp } from '@/components/wallet/CeloGasHelp';
 import { UbiClaim } from '@/components/wallet/UbiClaim';
 import { hasCeloForGas } from '@/lib/access';
-import { onChainMode, tournamentsEnabled } from '@/lib/chain/config';
+import { onChainMode } from '@/lib/chain/config';
 import { useWalletStore } from '@/lib/chain/wallet-store';
-import { useGameStore, type PlayMode } from '@/lib/game-store';
+import { useGameStore } from '@/lib/game-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { levelFromXp, useProgressStore } from '@/lib/progress-store';
 import { toast } from '@/lib/toast-store';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 
-const HOW_TO: { skin: Parameters<typeof TokenArt>[0]['skin']; label: string }[] = [
-  { skin: 'coin', label: '+10' },
-  { skin: 'jelly-cube', label: '+10' },
-  { skin: 'golden', label: '+20' },
-  { skin: 'rocket', label: 'Slow down' },
-  { skin: 'bomb', label: 'Avoid' },
+type Skin = Parameters<typeof TokenArt>[0]['skin'];
+
+// Falling treats in the hero
+const RAIN: { skin: Skin; left: string; size: number; duration: number; delay: number }[] = [
+  { skin: 'coin',      left: '72%', size: 52, duration: 6.0, delay: 0   },
+  { skin: 'golden',    left: '84%', size: 38, duration: 7.5, delay: 2.4 },
+  { skin: 'jelly-drop',left: '60%', size: 36, duration: 6.8, delay: 4.1 },
+  { skin: 'candy',     left: '88%', size: 42, duration: 8.0, delay: 1.2 },
+  { skin: 'bubble',    left: '65%', size: 34, duration: 7.2, delay: 5.6 },
+];
+
+const HOW_TO: { skin: Skin; label: string }[] = [
+  { skin: 'coin',      label: '+10' },
+  { skin: 'jelly-cube',label: '+10' },
+  { skin: 'golden',    label: '+20' },
+  { skin: 'rocket',    label: 'Slow down' },
+  { skin: 'bomb',      label: 'Avoid' },
 ];
 
 function Missions() {
   const { missions, ensureToday, claim } = useProgressStore();
-  useEffect(() => {
-    ensureToday();
-  }, [ensureToday]);
+  useEffect(() => { ensureToday(); }, [ensureToday]);
   if (!missions.length) return null;
 
   return (
@@ -49,20 +58,12 @@ function Missions() {
               </div>
             </div>
             {mission.claimed ? (
-              <span className="mission-check" aria-label="Claimed">
-                <Check size={16} strokeWidth={3} />
-              </span>
+              <span className="mission-check" aria-label="Claimed"><Check size={16} strokeWidth={3} /></span>
             ) : done ? (
-              <button
-                type="button"
-                className="btn btn-yellow btn-xs"
-                onClick={() => {
-                  const xp = claim(mission.id);
-                  if (xp) toast.success(`+${xp} XP`, mission.title);
-                }}
-              >
-                Claim
-              </button>
+              <button type="button" className="btn btn-yellow btn-xs" onClick={() => {
+                const xp = claim(mission.id);
+                if (xp) toast.success(`+${xp} XP`, mission.title);
+              }}>Claim</button>
             ) : (
               <span className="mission-xp num">+{mission.xp} XP</span>
             )}
@@ -88,13 +89,13 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
     if (account && !chainState) void refreshChain();
   }, [account, chainState, refreshChain]);
 
-  const prizeLeft = onChainMode ? (chainState?.playsLeft ?? 0) : (player?.roundsLeft ?? 0);
   const busy = !player || status !== 'idle';
   const canPlay = hasCeloForGas(chainState?.celoBalance);
 
-  const play = async (mode: PlayMode) => {
+  const play = async () => {
     try {
-      await startRound(mode);
+      // Always free mode — tournament is separate on the profile tab
+      await startRound('free');
     } catch (error) {
       toast.error('Couldn\u2019t start the game', error instanceof Error ? error.message : undefined);
       exit();
@@ -106,18 +107,31 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
       <section className="home-hero">
         <div className="hero-glow" aria-hidden />
 
+        {/* Falling treats */}
+        {RAIN.map((drop) => (
+          <motion.span
+            key={drop.skin}
+            className="hero-drop"
+            style={{ left: drop.left, width: drop.size }}
+            initial={{ y: -80, rotate: -10 }}
+            animate={{ y: 400, rotate: 20 }}
+            transition={{ repeat: Infinity, duration: drop.duration, delay: drop.delay, ease: 'linear' }}
+            aria-hidden
+          >
+            <TokenArt skin={drop.skin} />
+          </motion.span>
+        ))}
+
         <h1 className="hero-title">
           Pop. Streak.
           <br />
           <span>Top the week.</span>
         </h1>
         <p className="hero-copy">
-          {tournamentsEnabled
-            ? 'Tap the treats before they fall. Free G$ every day, and G$ prizes for the week\u2019s best scores.'
-            : 'Tap the treats before they fall. Claim free G$ every day and climb the weekly board.'}
+          Tap the treats before they fall. Claim free G$ every day and climb the weekly board.
         </p>
 
-        {!hasCeloForGas(chainState?.celoBalance) ? (
+        {!canPlay ? (
           <>
             <div className="hero-actions">
               <button type="button" className="btn btn-primary btn-block hero-play" disabled>
@@ -127,41 +141,22 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
             </div>
             <CeloGasHelp />
           </>
-        ) : tournamentsEnabled ? (
-          <>
-            <div className="hero-actions">
-              <button
-                type="button"
-                className="btn btn-primary btn-block hero-play"
-                onClick={() => play('prize')}
-                disabled={busy || prizeLeft <= 0}
-              >
-                <Play size={20} fill="currentColor" strokeWidth={0} />
-                {prizeLeft > 0 ? 'Tournament' : 'None left today'}
-              </button>
-              <button type="button" className="btn btn-dark btn-block" onClick={() => play('free')} disabled={busy}>
-                Practice
-              </button>
-            </div>
-            <p className="hero-meta">
-              {prizeLeft} tournament {prizeLeft === 1 ? 'game' : 'games'} left today &middot; tiny CELO network fee
-            </p>
-          </>
         ) : (
-          <>
-            <div className="hero-actions">
-              <button type="button" className="btn btn-primary btn-block hero-play" onClick={() => play('free')} disabled={busy || !canPlay}>
-                <Play size={20} fill="currentColor" strokeWidth={0} />
-                Play
-              </button>
-            </div>
-            <p className="hero-meta">A tiny CELO network fee is needed to play.</p>
-          </>
+          <div className="hero-actions">
+            <button
+              type="button"
+              className="btn btn-primary btn-block hero-play"
+              onClick={play}
+              disabled={busy}
+            >
+              {busy && status !== 'idle' ? <span className="spinner" /> : <Play size={20} fill="currentColor" strokeWidth={0} />}
+              Play
+            </button>
+          </div>
         )}
       </section>
 
       <InstallPrompt />
-
       <UbiClaim compact />
 
       <section className="stat-strip">
@@ -185,15 +180,11 @@ export function PlayView({ onNavigate }: { onNavigate: (tab: TabId) => void }) {
       <Missions />
 
       <section className="panel">
-        <div className="panel-head">
-          <h2>How to play</h2>
-        </div>
+        <div className="panel-head"><h2>How to play</h2></div>
         <div className="how-row">
           {HOW_TO.map((item) => (
             <div key={item.skin} className={`how-item ${item.skin === 'bomb' ? 'danger' : ''}`}>
-              <span className="how-art">
-                <TokenArt skin={item.skin} />
-              </span>
+              <span className="how-art"><TokenArt skin={item.skin} /></span>
               {item.label}
             </div>
           ))}
