@@ -21,6 +21,7 @@
     "deploy:mainnet": "bash scripts/deploy-mainnet.sh"
   },
   "dependencies": {
+    "@magic-ext/connect": "^9.1.0",
     "@magic-sdk/admin": "^2.8.4",
     "@prisma/client": "^6.19.3",
     "clsx": "^2.1.1",
