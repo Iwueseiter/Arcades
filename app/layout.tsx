@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Manrope, Outfit } from 'next/font/google';
 import './globals.css';
 import { ServiceWorker } from '@/components/pwa/ServiceWorker';
+import { Web3Provider } from '@/components/providers/Web3Provider';
 
 const display = Outfit({
   variable: '--font-heading',
@@ -38,7 +39,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${body.variable} ${display.variable}`}>
       <body>
-        {children}
+        <Web3Provider>
+          {children}
+        </Web3Provider>
         <ServiceWorker />
       </body>
     </html>
