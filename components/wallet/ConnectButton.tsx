@@ -4,6 +4,15 @@ import { Wallet } from 'lucide-react';
 import { describeError, useWalletStore } from '@/lib/chain/wallet-store';
 import { toast } from '@/lib/toast-store';
 
+/** On mobile without window.ethereum, redirect to open Xurri inside the GoodDollar wallet app. */
+function openInWalletApp() {
+  const appUrl = window.location.href;
+  // GoodDollar wallet deep link — opens the app and loads the URL inside its browser.
+  // Falls back to the app store page if not installed.
+  const deepLink = `https://wallet.gooddollar.org/AppNavigation/WalletNavigation/Profile?redirect=${encodeURIComponent(appUrl)}`;
+  window.location.href = deepLink;
+}
+
 export function ConnectButton({
   block = false,
   label = 'Sign in with wallet',
@@ -19,10 +28,8 @@ export function ConnectButton({
 
   const onClick = async () => {
     if (!hasProvider) {
-      toast.error(
-        'No wallet found',
-        'Open Xurri inside a wallet app (e.g. GoodDollar or MetaMask), or install a browser wallet extension.',
-      );
+      // On mobile: redirect to open this page inside a wallet browser
+      openInWalletApp();
       return;
     }
     try {
