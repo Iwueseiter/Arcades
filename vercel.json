@@ -1,3 +1,4 @@
 {
-  "crons": [{ "path": "/api/cron/settle", "schedule": "0 0 * * *" }]
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run vercel-build"
 }
