@@ -2612,3 +2612,86 @@ button:disabled {
   max-width: 300px;
   color: var(--muted);
 }
+
+/* ---------------------------------------------------------------- wallet picker modal */
+
+.wallet-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(22, 24, 29, 0.55);
+  display: grid;
+  place-items: end center;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+.wallet-modal {
+  width: min(420px, calc(100% - 32px));
+  padding: 20px;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 -4px 40px rgba(22, 24, 29, 0.18);
+  display: grid;
+  gap: 14px;
+}
+
+.wallet-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wallet-modal-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.wallet-modal-close {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: var(--panel-strong);
+  color: var(--muted);
+}
+
+.wallet-modal-hint {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.wallet-modal-list {
+  display: grid;
+  gap: 8px;
+}
+
+.wallet-modal-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--panel-strong);
+  border: 1.5px solid var(--line-strong);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ink);
+  text-decoration: none;
+  transition: background 0.1s;
+}
+
+.wallet-modal-item:active {
+  background: var(--bg-2);
+}
+
+.wallet-modal-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
