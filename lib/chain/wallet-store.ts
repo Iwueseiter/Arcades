@@ -198,9 +198,8 @@ export const useWalletStore = create<WalletState>()((set, get) => ({
       provider.on?.('accountsChanged', (next: string[]) => {
         const nextAccount = next[0] ? getAddress(next[0]) : null;
         if (nextAccount === get().account) return;
-        // Locking the wallet should not wipe the Xurri session; switching wallets does.
+        // The next successful wallet signature establishes the matching Xurri session.
         set({ account: null, chainState: null, ubi: null });
-        if (nextAccount) void api.logout().then(usePlayerStore.getState().setPlayer);
       });
     }
   },

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Coins, ExternalLink, Gift, ShieldCheck, Trophy } from 'lucide-react';
+import Link from 'next/link';
 import type { TabId } from '@/components/shell/AppShell';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { api } from '@/lib/api';
@@ -119,6 +120,9 @@ export function RewardsView({ onNavigate }: { onNavigate?: (tab: TabId) => void 
               <ShieldCheck size={18} />
               <div>
                 The daily gift is for real people. Do a quick face check in the GoodDollar app, then come back.
+                <Link href="/gooddollar-verification" style={{ display: 'block', marginTop: 6, color: 'var(--orange)', fontWeight: 700 }}>
+                  How face verification works
+                </Link>
                 <a href={GOODDOLLAR_VERIFY_URL} target="_blank" rel="noreferrer" className="btn btn-gold btn-sm btn-block" style={{ marginTop: 10 }}>
                   Do the face check <ExternalLink size={15} />
                 </a>

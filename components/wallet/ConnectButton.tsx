@@ -1,7 +1,7 @@
 'use client';
 
 import { ConnectButton as RainbowConnectButton } from '@rainbow-me/rainbowkit';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAccount, useSignMessage, useSwitchChain } from 'wagmi';
 import { celo } from 'viem/chains';
 import { useWalletStore } from '@/lib/chain/wallet-store';
@@ -19,13 +19,18 @@ function WalletSyncEffect() {
   const { signMessageAsync } = useSignMessage();
   const { switchChainAsync } = useSwitchChain();
   const setPlayer = usePlayerStore((s) => s.setPlayer);
+  const signingAddress = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isConnected || !address) return;
+    const normalizedAddress = address.toLowerCase();
+    if (signingAddress.current === normalizedAddress) return;
+
     // Already signed in with this address — skip
     const player = usePlayerStore.getState().player;
     if (player?.address?.toLowerCase() === address.toLowerCase()) return;
 
+    signingAddress.current = normalizedAddress;
     const signIn = async () => {
       useWalletStore.setState({ status: 'signing', account: address });
       try {
@@ -47,6 +52,7 @@ function WalletSyncEffect() {
           toast.error('Sign-in failed', describeError(error));
         }
       } finally {
+        if (signingAddress.current === normalizedAddress) signingAddress.current = null;
         useWalletStore.setState({ status: 'idle' });
       }
     };

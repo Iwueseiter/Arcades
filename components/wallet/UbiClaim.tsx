@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { BadgeCheck, ExternalLink, Gift } from 'lucide-react';
+import Link from 'next/link';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { playSound } from '@/lib/audioManager';
 import { chainConfig } from '@/lib/chain/config';
@@ -81,6 +82,11 @@ export function UbiClaim({ compact = false }: { compact?: boolean }) {
       ) : !ubi.verified ? (
         <>
           <p className="panel-copy">GoodDollar gives free G$ to real people. Do a one-time face check in the GoodDollar app with this wallet, then come back to claim.</p>
+          <p style={{ margin: '10px 0 0', fontSize: '0.85rem' }}>
+            <Link href="/gooddollar-verification" style={{ color: 'var(--orange)', fontWeight: 700 }}>
+              How face verification works
+            </Link>
+          </p>
           <a className="btn btn-primary btn-block" style={{ marginTop: 14 }} href={GOODDOLLAR_APP} target="_blank" rel="noreferrer">
             Get verified <ExternalLink size={16} />
           </a>
