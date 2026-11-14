@@ -2,7 +2,8 @@
 
 import { ConnectButton as RainbowConnectButton } from '@rainbow-me/rainbowkit';
 import { useEffect } from 'react';
-import { useAccount, useSignMessage } from 'wagmi';
+import { useAccount, useSignMessage, useSwitchChain } from 'wagmi';
+import { celo } from 'viem/chains';
 import { useWalletStore } from '@/lib/chain/wallet-store';
 import { usePlayerStore } from '@/lib/player-store';
 import { api } from '@/lib/api';
@@ -10,28 +11,33 @@ import { toast } from '@/lib/toast-store';
 import { describeError } from '@/lib/chain/wallet-store';
 
 /**
- * Wraps RainbowKit's ConnectButton to hook wallet connection into the Xurri
- * session system (SIWE-style sign-in) while showing the full wallet picker modal.
+ * After RainbowKit connects a wallet, this effect fires SIWE-style sign-in
+ * into the Xurri session system. It also switches the wallet to Celo first.
  */
 function WalletSyncEffect() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chainId } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const { switchChainAsync } = useSwitchChain();
   const setPlayer = usePlayerStore((s) => s.setPlayer);
 
   useEffect(() => {
     if (!isConnected || !address) return;
-    // Already signed in with this address — no need to re-auth
+    // Already signed in with this address — skip
     const player = usePlayerStore.getState().player;
     if (player?.address?.toLowerCase() === address.toLowerCase()) return;
 
     const signIn = async () => {
       useWalletStore.setState({ status: 'signing', account: address });
       try {
+        // Ensure the wallet is on Celo before signing
+        if (chainId !== celo.id) {
+          await switchChainAsync({ chainId: celo.id }).catch(() => null);
+        }
         const { message } = await api.nonce(address);
         const signature = await signMessageAsync({ message });
         const player = await api.verify(address, signature);
         setPlayer(player);
-        useWalletStore.setState({ account: address });
+        useWalletStore.setState({ account: address, hasProvider: true });
         await useWalletStore.getState().refreshChain();
         toast.success('Wallet connected', 'You\u2019re signed in and ready to play.');
       } catch (error) {
@@ -46,7 +52,7 @@ function WalletSyncEffect() {
     };
 
     void signIn();
-  }, [isConnected, address, signMessageAsync, setPlayer]);
+  }, [isConnected, address, signMessageAsync, setPlayer, switchChainAsync, chainId]);
 
   return null;
 }
