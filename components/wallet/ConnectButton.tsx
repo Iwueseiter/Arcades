@@ -11,54 +11,58 @@ import { toast } from '@/lib/toast-store';
 import { describeError } from '@/lib/chain/wallet-store';
 
 /**
- * After RainbowKit connects a wallet, this effect fires SIWE-style sign-in
- * into the Xurri session system. It also switches the wallet to Celo first.
+ * After RainbowKit connects a wallet, this signs the user into the Xurri
+ * session (SIWE-style nonce sign). Runs once per newly-connected address.
  */
 function WalletSyncEffect() {
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const { switchChainAsync } = useSwitchChain();
   const setPlayer = usePlayerStore((s) => s.setPlayer);
-  const signingAddress = useRef<string | null>(null);
+  // Guard against double-runs for the same address
+  const signingRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isConnected || !address) return;
-    const normalizedAddress = address.toLowerCase();
-    if (signingAddress.current === normalizedAddress) return;
 
-    // Already signed in with this address — skip
+    const key = address.toLowerCase();
+    // Already handled this address
+    if (signingRef.current === key) return;
+    // Already signed in with this address
     const player = usePlayerStore.getState().player;
-    if (player?.address?.toLowerCase() === address.toLowerCase()) return;
+    if (player?.address?.toLowerCase() === key) return;
 
-    signingAddress.current = normalizedAddress;
+    signingRef.current = key;
+
     const signIn = async () => {
-      useWalletStore.setState({ status: 'signing', account: address });
+      useWalletStore.setState({ status: 'signing' });
       try {
-        // Ensure the wallet is on Celo before signing
-        if (chainId !== celo.id) {
-          await switchChainAsync({ chainId: celo.id }).catch(() => null);
-        }
+        // Switch to Celo before signing — MetaMask defaults to Ethereum
+        await switchChainAsync({ chainId: celo.id }).catch(() => null);
+
         const { message } = await api.nonce(address);
         const signature = await signMessageAsync({ message });
-        const player = await api.verify(address, signature);
-        setPlayer(player);
+        const signedPlayer = await api.verify(address, signature);
+
+        setPlayer(signedPlayer);
         useWalletStore.setState({ account: address, hasProvider: true });
-        await useWalletStore.getState().refreshChain();
+        void useWalletStore.getState().refreshChain();
         toast.success('Wallet connected', 'You\u2019re signed in and ready to play.');
       } catch (error) {
+        signingRef.current = null; // allow retry on error
         useWalletStore.setState({ account: null, status: 'idle' });
         const msg = error instanceof Error ? error.message : '';
         if (!msg.toLowerCase().includes('cancel') && !msg.toLowerCase().includes('user rejected')) {
           toast.error('Sign-in failed', describeError(error));
         }
       } finally {
-        if (signingAddress.current === normalizedAddress) signingAddress.current = null;
         useWalletStore.setState({ status: 'idle' });
       }
     };
 
     void signIn();
-  }, [isConnected, address, signMessageAsync, setPlayer, switchChainAsync, chainId]);
+    // Only re-run when address or connection state changes — NOT on chainId
+  }, [isConnected, address]); // eslint-disable-line
 
   return null;
 }
@@ -75,11 +79,8 @@ export function ConnectButton({
   const player = usePlayerStore((s) => s.player);
   const account = useWalletStore((s) => s.account);
 
-  // Once signed in, call onConnected
   useEffect(() => {
-    if (account && player?.address) {
-      onConnected?.();
-    }
+    if (account && player?.address) onConnected?.();
   }, [account, player?.address, onConnected]);
 
   return (
