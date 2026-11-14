@@ -9,7 +9,6 @@ import type { TabId } from '@/components/shell/AppShell';
 import { CeloGasHelp } from '@/components/wallet/CeloGasHelp';
 import { UbiClaim } from '@/components/wallet/UbiClaim';
 import { hasCeloForGas } from '@/lib/access';
-import { onChainMode } from '@/lib/chain/config';
 import { useWalletStore } from '@/lib/chain/wallet-store';
 import { useGameStore } from '@/lib/game-store';
 import { usePlayerStore } from '@/lib/player-store';

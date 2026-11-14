@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Check, CheckCircle2, Copy, Fuel, Send } from 'lucide-react';
 import { PageViewTracker } from '@/components/analytics/PageViewTracker';
@@ -10,6 +11,7 @@ import { usePlayerStore } from '@/lib/player-store';
 import { useWalletStore } from '@/lib/chain/wallet-store';
 
 export default function GasPage() {
+  const router = useRouter();
   const account = useWalletStore((s) => s.account);
   const celoBalance = useWalletStore((s) => s.chainState?.celoBalance);
   const refreshChain = useWalletStore((s) => s.refreshChain);
@@ -48,11 +50,11 @@ export default function GasPage() {
   useEffect(() => {
     if (hasGas && account) {
       const timer = setTimeout(() => {
-        window.location.href = '/';
-      }, 1800); // brief pause so the success state is visible
+        router.push('/');
+      }, 1800);
       return () => clearTimeout(timer);
     }
-  }, [hasGas, account]);
+  }, [hasGas, account, router]);
 
   const copy = async () => {
     if (!account) return;

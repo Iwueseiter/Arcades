@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { Logo } from '@/components/brand/Logo';
 import { useBalance } from '@/lib/use-economy';
@@ -14,7 +15,7 @@ export function TopBar({ onOpenProfile }: { onOpenProfile: () => void }) {
   const { muted, toggleMuted } = useSettingsStore();
 
   // Label for the balance chip
-  let balanceLabel: React.ReactNode;
+  let balanceLabel: ReactNode;
   if (balance !== null) {
     balanceLabel = <span className="num">{formatG(balance)}</span>;
   } else if (isSignedIn(player)) {

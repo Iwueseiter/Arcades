@@ -9,6 +9,8 @@
  *   <Banner variant="wide" />    — 1200×630 (default)
  */
 
+import type { CSSProperties } from 'react';
+
 type Variant = 'wide' | 'square';
 
 interface BannerProps {
@@ -16,7 +18,7 @@ interface BannerProps {
   width?: number;
   variant?: Variant;
   className?: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 }
 
 const DIMENSIONS: Record<Variant, [number, number]> = {
